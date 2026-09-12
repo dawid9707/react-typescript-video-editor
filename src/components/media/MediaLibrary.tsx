@@ -200,6 +200,7 @@ export function MediaLibrary() {
 
   const { pickFiles, importFiles } = useMediaImport();
   const [dragOver, setDragOver] = useState(false);
+  const [subtitlesView, setSubtitlesView] = useState<"add" | "import">("add");
 
   const filtered = useMemo(() => {
     const kinds =
@@ -310,7 +311,20 @@ export function MediaLibrary() {
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
-        {(tab === "media" || tab === "audio" || tab === "subtitles") &&
+        {tab === "subtitles" && (
+          <div className="mb-4">
+            <SegmentedButtons
+              options={[
+                { value: "add", label: "Twórz" },
+                { value: "import", label: "Z plików" },
+              ]}
+              value={subtitlesView}
+              onChange={(v) => setSubtitlesView(v as "add" | "import")}
+            />
+          </div>
+        )}
+
+        {(tab === "media" || tab === "audio" || (tab === "subtitles" && subtitlesView === "import")) &&
           (filtered.length === 0 ? (
             <EmptyState
               icon={tab === "audio" ? "graphic_eq" : tab === "subtitles" ? "subtitles" : "video_library"}
@@ -345,13 +359,13 @@ export function MediaLibrary() {
             </div>
           ))}
 
-        {tab === "subtitles" && (
-          <div className="mt-3 rounded-[14px] bg-surf p-3">
-            <p className="mb-2 text-[12px] text-on-surface-variant">
-              Zaimportowane napisy dodasz na ścieżkę S1 przeciągając je na oś czasu. Możesz też utworzyć pojedynczy napis
-              w miejscu playheada.
+        {tab === "subtitles" && subtitlesView === "add" && (
+          <div className="rounded-[14px] bg-surf p-3">
+            <p className="mb-3 text-[12px] text-on-surface-variant">
+              Utwórz pojedynczy napis w miejscu playheada na osi czasu.
             </p>
             <Button
+              className="w-full"
               variant="outlined"
               icon="add_comment"
               onClick={() => {

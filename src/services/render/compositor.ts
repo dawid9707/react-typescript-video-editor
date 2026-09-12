@@ -167,6 +167,7 @@ function drawPostEffects(
   rect: { x: number; y: number; w: number; h: number },
   effects: Effect[],
   source: Drawable | null,
+  time: number,
 ): void {
   for (const fx of effects) {
     if (!fx.enabled) continue;
@@ -209,6 +210,97 @@ function drawPostEffects(
       ctx.globalAlpha = clamp(p.amount, 0, 1) * 0.7;
       ctx.filter = `blur(${(p.radius ?? 12).toFixed(1)}px) brightness(1.3)`;
       ctx.drawImage(source, rect.x, rect.y, rect.w, rect.h);
+      ctx.restore();
+    }
+    if (fx.type === "pixelate" && p.size > 1 && source) {
+      const pxSize = Math.max(2, Math.round(p.size));
+      const sw = Math.max(1, Math.round(rect.w / pxSize));
+      const sh = Math.max(1, Math.round(rect.h / pxSize));
+      const tmp = scratchCanvas("px", sw, sh);
+      const tctx = tmp.getContext("2d")!;
+      tctx.imageSmoothingEnabled = false;
+      tctx.clearRect(0, 0, sw, sh);
+      const sW = (source as any).videoWidth || (source as any).naturalWidth || source.width;
+      const sH = (source as any).videoHeight || (source as any).naturalHeight || source.height;
+      if (sW && sH) {
+        tctx.drawImage(source, 0, 0, sW, sH, 0, 0, sw, sh);
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(tmp, 0, 0, sw, sh, rect.x, rect.y, rect.w, rect.h);
+        ctx.restore();
+      }
+    }
+    if (fx.type === "vhs" && p.amount > 0 && source) {
+      const shift = Math.max(1, p.amount * 12);
+      const sW = (source as any).videoWidth || (source as any).naturalWidth || source.width;
+      const sH = (source as any).videoHeight || (source as any).naturalHeight || source.height;
+      if (sW && sH) {
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        ctx.globalAlpha = clamp(p.amount, 0, 1) * 0.6;
+        ctx.filter = "sepia(1) hue-rotate(-50deg) saturate(3) brightness(0.8)";
+        ctx.drawImage(source, 0, 0, sW, sH, rect.x - shift, rect.y, rect.w, rect.h);
+        ctx.filter = "sepia(1) hue-rotate(150deg) saturate(3) brightness(0.8)";
+        ctx.drawImage(source, 0, 0, sW, sH, rect.x + shift, rect.y, rect.w, rect.h);
+        ctx.restore();
+
+        ctx.save();
+        const noiseY = (time * 150) % rect.h;
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.amount * 0.15})`;
+        ctx.globalCompositeOperation = "overlay";
+        ctx.fillRect(rect.x, rect.y + noiseY, rect.w, 4 + Math.random() * 8);
+        ctx.fillRect(rect.x, rect.y + noiseY + 15, rect.w, 2 + Math.random() * 4);
+        ctx.restore();
+      }
+    }
+    if (fx.type === "glitch" && p.amount > 0 && source) {
+      const sW = (source as any).videoWidth || (source as any).naturalWidth || source.width;
+      const sH = (source as any).videoHeight || (source as any).naturalHeight || source.height;
+      if (sW && sH) {
+        ctx.save();
+        const t = Math.floor(time * 12);
+        if (Math.sin(t * 13.3) > 0.2) {
+          const slices = [
+            { y: Math.abs(Math.sin(t * 1.1)), h: 0.05 + 0.05 * Math.abs(Math.cos(t)), x: 20 * p.amount * Math.sin(t * 7) },
+            { y: Math.abs(Math.cos(t * 2.3)), h: 0.03 + 0.08 * Math.abs(Math.sin(t)), x: -25 * p.amount * Math.cos(t * 3) },
+            { y: Math.abs(Math.sin(t * 3.7)), h: 0.04 + 0.06 * Math.abs(Math.cos(t * 2)), x: 30 * p.amount * Math.sin(t * 5) },
+          ];
+          for (const s of slices) {
+            const sy = clamp(s.y, 0, 0.9);
+            ctx.drawImage(source, 0, sH * sy, sW, sH * s.h, rect.x + s.x, rect.y + rect.h * sy, rect.w, rect.h * s.h);
+            
+            ctx.globalCompositeOperation = "screen";
+            ctx.globalAlpha = clamp(p.amount, 0, 1) * 0.7;
+            ctx.filter = "sepia(1) hue-rotate(-50deg) saturate(4)";
+            ctx.drawImage(source, 0, sH * sy, sW, sH * s.h, rect.x + s.x - 10 * p.amount, rect.y + rect.h * sy, rect.w, rect.h * s.h);
+            
+            ctx.filter = "sepia(1) hue-rotate(150deg) saturate(4)";
+            ctx.drawImage(source, 0, sH * sy, sW, sH * s.h, rect.x + s.x + 10 * p.amount, rect.y + rect.h * sy, rect.w, rect.h * s.h);
+            
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = 1;
+            ctx.filter = "none";
+          }
+        }
+        ctx.restore();
+      }
+    }
+    if (fx.type === "scanlines" && p.amount > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = "overlay";
+      ctx.globalAlpha = clamp(p.amount, 0, 1) * 0.4;
+      ctx.fillStyle = "#000";
+      for (let y = rect.y; y < rect.y + rect.h; y += 4) {
+        ctx.fillRect(rect.x, y, rect.w, 1.5);
+      }
+      ctx.restore();
+    }
+    if (fx.type === "cinema" && p.size > 0) {
+      const barH = rect.h * clamp(p.size, 0, 0.4);
+      ctx.save();
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(rect.x, rect.y, rect.w, barH);
+      ctx.fillRect(rect.x, rect.y + rect.h - barH, rect.w, barH);
       ctx.restore();
     }
   }
@@ -489,7 +581,7 @@ function drawVideoClip(o: RenderOptions, clip: VideoClip): void {
   }
   ctx.filter = "none";
   drawColorOverlays(ctx, dst, clip.color);
-  drawPostEffects(ctx, dst, clip.effects, painted);
+  drawPostEffects(ctx, dst, clip.effects, painted, o.time);
   ctx.restore();
 
   if (trans.dip && trans.dip.alpha > 0.001) {

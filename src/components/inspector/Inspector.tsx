@@ -95,8 +95,8 @@ function EffectsSection({ clip }: { clip: VideoClip | TextClip }) {
                   label={key}
                   value={value}
                   min={key === "angle" ? -180 : key === "blur" || key === "radius" ? 0 : key === "x" || key === "y" ? -100 : 0}
-                  max={key === "angle" ? 180 : key === "radius" || key === "blur" ? 40 : key === "x" || key === "y" ? 100 : 2}
-                  step={0.01}
+                  max={key === "angle" ? 180 : key === "radius" || key === "blur" ? 40 : key === "x" || key === "y" ? 100 : key === "size" && fx.type === "pixelate" ? 100 : 2}
+                  step={key === "size" && fx.type === "pixelate" ? 1 : 0.01}
                   defaultValue={EFFECT_DEFAULTS[fx.type].params[key] ?? 0}
                   onChange={(v) => updateEffect(clip.id, fx.id, { params: { [key]: v } })}
                 />
@@ -341,7 +341,22 @@ function TextInspector({ clip }: { clip: TextClip | SubtitleClip }) {
         value={style.fontFamily}
         options={[
           { value: '"Roboto Flex", system-ui, sans-serif', label: "Roboto Flex" },
+          { value: '"Montserrat", sans-serif', label: "Montserrat" },
+          { value: '"Open Sans", sans-serif', label: "Open Sans" },
+          { value: '"Lato", sans-serif', label: "Lato" },
+          { value: '"Poppins", sans-serif', label: "Poppins" },
+          { value: '"Raleway", sans-serif', label: "Raleway" },
+          { value: '"Ubuntu", sans-serif', label: "Ubuntu" },
+          { value: '"Oswald", sans-serif', label: "Oswald" },
+          { value: '"Bebas Neue", sans-serif', label: "Bebas Neue" },
+          { value: '"Playfair Display", serif', label: "Playfair Display" },
+          { value: '"Lora", serif', label: "Lora" },
+          { value: '"Merriweather", serif', label: "Merriweather" },
+          { value: '"Cinzel", serif', label: "Cinzel" },
           { value: "Georgia, serif", label: "Georgia" },
+          { value: '"Pacifico", cursive', label: "Pacifico" },
+          { value: '"Dancing Script", cursive', label: "Dancing Script" },
+          { value: '"Caveat", cursive', label: "Caveat" },
           { value: '"Roboto Mono", monospace', label: "Roboto Mono" },
           { value: "Impact, sans-serif", label: "Impact" },
           { value: "system-ui, sans-serif", label: "System UI" },

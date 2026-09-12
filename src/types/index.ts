@@ -117,7 +117,12 @@ export type EffectType =
   | "noise"
   | "glow"
   | "shadow"
-  | "colorize";
+  | "colorize"
+  | "vhs"
+  | "glitch"
+  | "pixelate"
+  | "scanlines"
+  | "cinema";
 
 export interface Effect {
   id: string;

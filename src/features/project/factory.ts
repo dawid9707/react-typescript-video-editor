@@ -78,6 +78,11 @@ export const EFFECT_DEFAULTS: Record<EffectType, { label: string; icon: string; 
   glow: { label: "Poświata", icon: "flare", params: { amount: 0.4, radius: 14 } },
   shadow: { label: "Cień", icon: "shadow", params: { x: 0, y: 10, blur: 18 }, color: "rgba(0,0,0,0.6)" },
   colorize: { label: "Koloryzacja", icon: "format_color_fill", params: { amount: 0.4 }, color: "#4a5bb9" },
+  vhs: { label: "VHS", icon: "videocam", params: { amount: 0.4 } },
+  glitch: { label: "Glitch", icon: "broken_image", params: { amount: 0.3 } },
+  pixelate: { label: "Pikseloza", icon: "grid_on", params: { size: 10 } },
+  scanlines: { label: "Linie TV", icon: "tv", params: { amount: 0.4 } },
+  cinema: { label: "Kino (pasy)", icon: "movie", params: { size: 0.1 } },
 };
 
 export function createEffect(type: EffectType): Effect {
