@@ -52,6 +52,49 @@ export function ExportDialog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recommended, customBitrate, settings.quality]);
 
+  const ffmpegWasmAvailable =
+    typeof window !== "undefined" &&
+    !window.location.hostname.includes("app.github.dev") &&
+    !window.location.hostname.includes("github.dev");
+
+  const mediaRecorderVideoOptions = settings.container === "webm"
+    ? [
+        { value: "vp8", label: "VP8" },
+      ]
+    : [
+        { value: "h264", label: "H.264 / AVC" },
+        { value: "h265", label: "H.265 / HEVC" },
+      ];
+
+  const mediaRecorderAudioOptions = settings.container === "webm"
+    ? [
+        { value: "opus", label: "Opus" },
+        { value: "none", label: "Bez dźwięku" },
+      ]
+    : [
+        { value: "aac", label: "AAC" },
+        { value: "none", label: "Bez dźwięku" },
+      ];
+
+  const videoCodecOptions = settings.engine === "mediarecorder"
+    ? mediaRecorderVideoOptions
+    : [
+        { value: "h264", label: "H.264 / AVC" },
+        { value: "h265", label: "H.265 / HEVC" },
+        { value: "vp9", label: "VP9" },
+        { value: "vp8", label: "VP8" },
+        { value: "av1", label: "AV1" },
+      ];
+
+  const audioCodecOptions = settings.engine === "mediarecorder"
+    ? mediaRecorderAudioOptions
+    : [
+        { value: "aac", label: "AAC" },
+        { value: "opus", label: "Opus" },
+        { value: "vorbis", label: "Vorbis" },
+        { value: "none", label: "Bez dźwięku" },
+      ];
+
   const nativeMime = useMemo(
     () => findRecorderMime(settings.container, settings.videoCodec, settings.audioCodec),
     [settings.container, settings.videoCodec, settings.audioCodec],
@@ -62,7 +105,7 @@ export function ExportDialog() {
         ? `Przeglądarka koduje natywnie: ${nativeMime}`
         : "Ta kombinacja kontenera i kodeka nie jest obsługiwana natywnie — wybierz silnik FFmpeg."
       : settings.engine === "ffmpeg-wasm"
-        ? "Render w przeglądarce, następnie transkodowanie ffmpeg.wasm (pobierane z CDN przy pierwszym użyciu)."
+        ? "FFmpeg WASM jest wyłączony w tym środowisku, bo przeglądarka blokuje zewnętrzne workery. Wybierz backend lub przeglądarkę."
         : backendUrl
           ? `Transkodowanie po stronie serwera: ${backendUrl}`
           : "Podaj adres backendu w Ustawieniach → Silnik renderowania.";
@@ -226,19 +269,60 @@ export function ExportDialog() {
                 { value: "mp4", label: "MP4" },
                 { value: "webm", label: "WebM" },
               ]}
-              onChange={(v) => store.patch({ container: v as ExportContainer, profileId: "custom" })}
+              onChange={(v) => {
+                const container = v as ExportContainer;
+                const nextVideoCodec =
+                  container === "mp4"
+                    ? settings.engine === "mediarecorder"
+                      ? "h264"
+                      : settings.videoCodec === "vp9" || settings.videoCodec === "vp8" || settings.videoCodec === "av1"
+                        ? "h264"
+                        : settings.videoCodec
+                    : settings.engine === "mediarecorder"
+                      ? "vp8"
+                      : settings.videoCodec === "h264" || settings.videoCodec === "h265"
+                        ? "vp8"
+                        : settings.videoCodec;
+                const nextAudioCodec =
+                  container === "mp4"
+                    ? settings.engine === "mediarecorder"
+                      ? "aac"
+                      : settings.audioCodec === "opus" || settings.audioCodec === "vorbis"
+                        ? "aac"
+                        : settings.audioCodec
+                    : settings.engine === "mediarecorder"
+                      ? "opus"
+                      : settings.audioCodec === "aac" || settings.audioCodec === "vorbis"
+                        ? "opus"
+                        : settings.audioCodec;
+                store.patch({
+                  container,
+                  videoCodec: nextVideoCodec,
+                  audioCodec: nextAudioCodec,
+                  profileId: "custom",
+                });
+              }}
             />
             <Select
               label="Kodek wideo"
               value={settings.videoCodec}
-              options={[
-                { value: "h264", label: "H.264 / AVC" },
-                { value: "h265", label: "H.265 / HEVC" },
-                { value: "vp9", label: "VP9" },
-                { value: "vp8", label: "VP8" },
-                { value: "av1", label: "AV1" },
-              ]}
-              onChange={(v) => store.patch({ videoCodec: v as ExportVideoCodec, profileId: "custom" })}
+              options={videoCodecOptions}
+              onChange={(v) => {
+                const videoCodec = v as ExportVideoCodec;
+                const mp4Codec = videoCodec === "h264" || videoCodec === "h265";
+                const nextContainer = settings.engine === "mediarecorder" ? (mp4Codec ? "mp4" : "webm") : mp4Codec ? "mp4" : "webm";
+                store.patch({
+                  videoCodec,
+                  container: nextContainer,
+                  audioCodec:
+                    mp4Codec && !["aac", "none"].includes(settings.audioCodec)
+                      ? "aac"
+                      : !mp4Codec && settings.audioCodec === "aac"
+                        ? "opus"
+                        : settings.audioCodec,
+                  profileId: "custom",
+                });
+              }}
             />
             <Select
               label="Klatki na sekundę"
@@ -316,12 +400,7 @@ export function ExportDialog() {
             <Select
               label="Kodek audio"
               value={settings.audioCodec}
-              options={[
-                { value: "aac", label: "AAC" },
-                { value: "opus", label: "Opus" },
-                { value: "vorbis", label: "Vorbis" },
-                { value: "none", label: "Bez dźwięku" },
-              ]}
+              options={audioCodecOptions}
               onChange={(v) => store.patch({ audioCodec: v as ExportAudioCodec })}
             />
             <Select
@@ -341,10 +420,17 @@ export function ExportDialog() {
             onChange={(v) => store.patch({ engine: v as ExportEngineId })}
             options={[
               { value: "mediarecorder", label: "Przeglądarka", icon: "speed" },
-              { value: "ffmpeg-wasm", label: "FFmpeg WASM", icon: "memory" },
+              ...(ffmpegWasmAvailable
+                ? [{ value: "ffmpeg-wasm", label: "FFmpeg WASM", icon: "memory" } as const]
+                : []),
               { value: "backend", label: "Backend", icon: "dns" },
             ]}
           />
+          {!ffmpegWasmAvailable && (
+            <p className="text-[11px] text-warning">
+              FFmpeg WASM jest wyłączone w tym środowisku, ponieważ przeglądarka blokuje zewnętrzne worker-y. Użyj silnika "Przeglądarka" lub podłącz backend.
+            </p>
+          )}
           <p className="text-[11px] text-on-surface-variant">{engineNote}</p>
           <SegmentedButtons
             value={settings.destination}

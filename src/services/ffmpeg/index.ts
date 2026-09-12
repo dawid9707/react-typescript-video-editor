@@ -5,7 +5,8 @@ import type { ExportSettings } from "@/types";
  *
  * Two concrete implementations ship with the app:
  *   • WasmFFmpeg    – @ffmpeg/ffmpeg (WebAssembly) loaded on demand from a
- *                     CDN. Single-threaded core, works without COOP/COEP.
+ *                     CDN. Uses the multi-threaded core when the page is
+ *                     cross-origin isolated, otherwise falls back to single-threaded.
  *   • BackendFFmpeg – thin HTTP client for a native FFmpeg service. The
  *                     contract is documented below so a server can be
  *                     plugged in without touching the UI layer.
@@ -34,8 +35,19 @@ export interface FFmpegEngine {
   terminate(): void;
 }
 
+function virtualFileName(name: string): string {
+  const base = name.replace(/\\/g, "/").split("/").pop() ?? "file.bin";
+  const safe = base.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return safe || "file.bin";
+}
+
+async function startsWithEbml(blob: Blob): Promise<boolean> {
+  const bytes = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  return bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3;
+}
+
 export function buildFFmpegArgs(s: ExportSettings, inputName: string, outputName: string): string[] {
-  const args = ["-i", inputName];
+  const args = ["-fflags", "+genpts", "-i", inputName, "-map", "0:v:0"];
   const vcodec =
     s.videoCodec === "h264"
       ? "libx264"
@@ -46,6 +58,11 @@ export function buildFFmpegArgs(s: ExportSettings, inputName: string, outputName
           : s.videoCodec === "vp8"
             ? "libvpx"
             : "libaom-av1";
+  if (s.container === "gif") {
+    args.push("-an", "-vf", `fps=${s.fps},scale=${s.width}:${s.height}:flags=bicubic`, "-c:v", "gif", "-f", "gif");
+    args.push("-y", outputName);
+    return args;
+  }
   args.push("-c:v", vcodec);
   args.push("-b:v", `${s.videoBitrate}k`);
   args.push("-r", String(s.fps));
@@ -57,10 +74,12 @@ export function buildFFmpegArgs(s: ExportSettings, inputName: string, outputName
   if (s.audioCodec === "none") {
     args.push("-an");
   } else {
+    args.push("-map", "0:a:0?");
     const acodec = s.audioCodec === "aac" ? "aac" : s.audioCodec === "opus" ? "libopus" : "libvorbis";
     args.push("-c:a", acodec, "-b:a", `${s.audioBitrate}k`, "-ar", String(s.sampleRate));
   }
-  args.push("-y", outputName);
+  args.push("-shortest", "-avoid_negative_ts", "make_zero");
+  args.push("-f", s.container === "mp4" ? "mp4" : s.container === "mkv" ? "matroska" : "webm", "-y", outputName);
   return args;
 }
 
@@ -69,8 +88,8 @@ export function buildFFmpegArgs(s: ExportSettings, inputName: string, outputName
 const FFMPEG_VERSION = "0.12.10";
 const CORE_VERSION = "0.12.6";
 const ESM_URL = `https://unpkg.com/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/index.js`;
-const WORKER_URL = `https://unpkg.com/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/worker.js`;
 const CORE_BASE = `https://unpkg.com/@ffmpeg/core@${CORE_VERSION}/dist/esm`;
+const CORE_MT_BASE = `https://unpkg.com/@ffmpeg/core-mt@${CORE_VERSION}/dist/esm`;
 
 async function toBlobURL(url: string, mime: string, onProgress?: (r: number) => void): Promise<string> {
   const res = await fetch(url);
@@ -93,8 +112,23 @@ async function toBlobURL(url: string, mime: string, onProgress?: (r: number) => 
   return URL.createObjectURL(new Blob(chunks as BlobPart[], { type: mime }));
 }
 
+interface FFmpegLoadOptions {
+  coreURL: string;
+  wasmURL: string;
+  classWorkerURL: string;
+  workerURL?: string;
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timer = 0;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
+}
+
 interface FFmpegInstance {
-  load(opts: Record<string, string>): Promise<boolean>;
+  load(opts: FFmpegLoadOptions): Promise<boolean>;
   writeFile(name: string, data: Uint8Array): Promise<boolean>;
   readFile(name: string): Promise<Uint8Array | string>;
   deleteFile(name: string): Promise<boolean>;
@@ -111,11 +145,28 @@ export class WasmFFmpeg implements FFmpegEngine {
   private durationHint = 0;
   private progressCb: ((ratio: number, message: string) => void) | null = null;
 
+  private isBlockedRemoteWorkerEnvironment(): boolean {
+    const host = typeof location !== "undefined" ? location.hostname : "";
+    return host.includes("app.github.dev") || host.includes("github.dev");
+  }
+
+  private canUseThreads(): boolean {
+    return typeof SharedArrayBuffer !== "undefined" &&
+      typeof crossOriginIsolated !== "undefined" &&
+      crossOriginIsolated;
+  }
+
   async isAvailable(): Promise<boolean> {
+    if (this.isBlockedRemoteWorkerEnvironment()) return false;
     return typeof WebAssembly !== "undefined" && typeof Worker !== "undefined";
   }
 
   async load(onProgress?: (ratio: number, message: string) => void): Promise<void> {
+    if (this.isBlockedRemoteWorkerEnvironment()) {
+      throw new Error(
+        "FFmpeg WASM jest zablokowany w tym środowisku (GitHub Codespaces / app.github.dev), bo przeglądarka odrzuca zewnętrzne worker-y. Użyj 'Przeglądarka' albo skonfiguruj backend FFmpeg.",
+      );
+    }
     if (this.instance) return;
     if (this.loading) return this.loading;
     this.loading = (async () => {
@@ -123,13 +174,24 @@ export class WasmFFmpeg implements FFmpegEngine {
       const mod = (await import(/* @vite-ignore */ ESM_URL)) as {
         FFmpeg: new () => FFmpegInstance;
       };
-      const classWorkerURL = await toBlobURL(WORKER_URL, "text/javascript");
-      const coreURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript", (r) =>
-        onProgress?.(0.05 + r * 0.15, "Pobieranie rdzenia FFmpeg…"),
+      const classWorkerURL = await toBlobURL(
+        `https://unpkg.com/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/worker.js`,
+        "text/javascript",
       );
-      const wasmURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm", (r) =>
-        onProgress?.(0.2 + r * 0.6, "Pobieranie ffmpeg-core.wasm…"),
+      const threaded = this.canUseThreads();
+      const coreBase = threaded ? CORE_MT_BASE : CORE_BASE;
+      const coreLabel = threaded ? "wielowątkowego rdzenia FFmpeg" : "rdzenia FFmpeg";
+      const coreURL = await toBlobURL(`${coreBase}/ffmpeg-core.js`, "text/javascript", (r) =>
+        onProgress?.(0.05 + r * 0.15, `Pobieranie ${coreLabel}…`),
       );
+      const wasmURL = await toBlobURL(`${coreBase}/ffmpeg-core.wasm`, "application/wasm", (r) =>
+        onProgress?.(0.2 + r * 0.6, `Pobieranie ${coreLabel}.wasm…`),
+      );
+      const workerURL = threaded
+        ? await toBlobURL(`${CORE_MT_BASE}/ffmpeg-core.worker.js`, "text/javascript", (r) =>
+            onProgress?.(0.8 + r * 0.05, "Pobieranie workera FFmpeg…"),
+          )
+        : undefined;
       const ff = new mod.FFmpeg();
       ff.on("log", () => undefined);
       ff.on("progress", (data: never) => {
@@ -138,7 +200,16 @@ export class WasmFFmpeg implements FFmpegEngine {
         if (isFinite(ratio) && ratio >= 0) this.progressCb?.(Math.min(0.999, ratio), "Transkodowanie FFmpeg…");
       });
       onProgress?.(0.85, "Inicjalizacja rdzenia…");
-      await ff.load({ coreURL, wasmURL, classWorkerURL });
+      await withTimeout(
+        ff.load({
+          coreURL,
+          wasmURL,
+          classWorkerURL,
+          ...(workerURL ? { workerURL } : {}),
+        }),
+        45_000,
+        "Inicjalizacja FFmpeg przekroczyła 45 sekund. Sprawdź worker i nagłówki COOP/COEP.",
+      );
       this.instance = ff;
       onProgress?.(1, "FFmpeg gotowy");
     })();
@@ -158,23 +229,38 @@ export class WasmFFmpeg implements FFmpegEngine {
     const ff = this.instance;
     if (!ff) throw new Error("FFmpeg nie został zainicjalizowany.");
     this.progressCb = (r, m) => req.onProgress?.(r, m);
+    const inputName = virtualFileName(req.inputName);
+    const outputName = virtualFileName(req.outputName);
     const bytes = new Uint8Array(await req.input.arrayBuffer());
-    await ff.writeFile(req.inputName, bytes);
-    const args = req.extraArgs ?? buildFFmpegArgs(req.settings, req.inputName, req.outputName);
-    const code = await ff.exec(args);
-    if (code !== 0) {
-      throw new Error(
-        `FFmpeg zakończył się kodem ${code}. Wybrany kodek może nie być dostępny w rdzeniu WebAssembly ` +
-          `(np. libx265/libaom wymagają natywnego backendu).`,
-      );
+    await ff.writeFile(inputName, bytes);
+    const args = req.extraArgs ?? buildFFmpegArgs(req.settings, inputName, outputName);
+    if (args.some((arg) => arg === "ffprobe" || arg.endsWith("/ffprobe"))) {
+      throw new Error("Nieprawidłowa komenda FFmpeg: do transkodowania przekazano ffprobe zamiast pliku wyjściowego.");
     }
-    const data = await ff.readFile(req.outputName);
-    await ff.deleteFile(req.inputName).catch(() => undefined);
-    await ff.deleteFile(req.outputName).catch(() => undefined);
-    this.progressCb = null;
-    const bin = typeof data === "string" ? new TextEncoder().encode(data) : data;
-    const mime = req.settings.container === "mp4" ? "video/mp4" : "video/webm";
-    return new Blob([bin as BlobPart], { type: mime });
+    try {
+      const code = await ff.exec(args);
+      if (code !== 0) {
+        throw new Error(
+          `FFmpeg zakończył się kodem ${code}. Wybrany kodek może nie być dostępny w rdzeniu WebAssembly ` +
+            `(np. libx265/libaom wymagają natywnego backendu).`,
+        );
+      }
+      const data = await ff.readFile(outputName);
+      const bin = typeof data === "string" ? new TextEncoder().encode(data) : data;
+      const mime =
+        req.settings.container === "mp4"
+          ? "video/mp4"
+          : req.settings.container === "mkv"
+            ? "video/x-matroska"
+            : req.settings.container === "gif"
+              ? "image/gif"
+              : "video/webm";
+      return new Blob([bin as BlobPart], { type: mime });
+    } finally {
+      await ff.deleteFile(inputName).catch(() => undefined);
+      await ff.deleteFile(outputName).catch(() => undefined);
+      this.progressCb = null;
+    }
   }
 
   setDurationHint(seconds: number): void {
@@ -239,7 +325,13 @@ export class BackendFFmpeg implements FFmpegEngine {
     });
     if (!res.ok) throw new Error(`Backend zwrócił błąd HTTP ${res.status}.`);
     req.onProgress?.(0.9, "Pobieranie wyniku…");
-    return await res.blob();
+    const blob = await res.blob();
+    if (req.settings.container !== "webm" && (blob.type === "video/webm" || (await startsWithEbml(blob)))) {
+      throw new Error(
+        "Backend zwrócił WebM zamiast żądanego formatu. Sprawdź, czy endpoint /transcode wykonuje przekazane argumenty FFmpeg.",
+      );
+    }
+    return blob;
   }
 
   terminate(): void {

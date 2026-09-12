@@ -1,6 +1,6 @@
 import type { ExportPhase, ExportSettings, MediaAsset, Project } from "@/types";
 import { playbackEngine } from "@/services/playback/engine";
-import { bestIntermediateMime, capabilities, findRecorderMime } from "@/services/export/capabilities";
+import { bestIntermediateMime, capabilities, exportFormat, findRecorderMime } from "@/services/export/capabilities";
 import { BackendFFmpeg, getWasmFFmpeg, type FFmpegEngine } from "@/services/ffmpeg";
 import { projectDuration } from "@/features/timeline/selectors";
 import { downloadBlob } from "@/utils/format";
@@ -20,9 +20,6 @@ export interface ExportResult {
   mime: string;
   durationSec: number;
 }
-
-const extFor = (mime: string, container: string) =>
-  container === "mp4" || mime.includes("mp4") ? "mp4" : "webm";
 
 function sanitize(name: string): string {
   return name.replace(/[^\p{L}\p{N}\-_ ]/gu, "").trim() || "eksport";
@@ -144,8 +141,8 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
     }
     const blob = await recordTimeline(req, mime);
     req.onProgress("finalizing", 0.98, "Finalizowanie pliku…");
-    const ext = extFor(mime, settings.container);
-    return { blob, fileName: `${sanitize(project.name)}.${ext}`, mime, durationSec: duration };
+    const format = exportFormat(settings.container);
+    return { blob, fileName: `${sanitize(project.name)}.${format.extension}`, mime, durationSec: duration };
   }
 
   const intermediate = bestIntermediateMime();
@@ -158,11 +155,11 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
 
   req.onProgress("transcoding", 0.02, `Inicjalizacja: ${engine.name}…`);
   const inExt = intermediate.includes("mp4") ? "mp4" : "webm";
-  const outExt = settings.container === "mp4" ? "mp4" : "webm";
+  const format = exportFormat(settings.container);
   const blob = await engine.transcode({
     input: raw,
-    inputName: `source.${inExt}`,
-    outputName: `output.${outExt}`,
+    inputName: `input.${inExt}`,
+    outputName: `output.${format.extension}`,
     settings,
     signal: req.signal,
     onProgress: (ratio, message) => req.onProgress("transcoding", ratio, message),
@@ -170,8 +167,8 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
   req.onProgress("finalizing", 0.98, "Finalizowanie pliku…");
   return {
     blob,
-    fileName: `${sanitize(project.name)}.${outExt}`,
-    mime: outExt === "mp4" ? "video/mp4" : "video/webm",
+    fileName: `${sanitize(project.name)}.${format.extension}`,
+    mime: format.mime,
     durationSec: duration,
   };
 }
@@ -195,12 +192,20 @@ export async function deliverResult(
         }>;
       }
     ).showSaveFilePicker;
+    const extension = result.fileName.slice(result.fileName.lastIndexOf("."));
     const handle = await picker({
       suggestedName: result.fileName,
       types: [
         {
-          description: result.mime === "video/mp4" ? "Wideo MP4" : "Wideo WebM",
-          accept: { [result.mime]: [result.fileName.endsWith(".mp4") ? ".mp4" : ".webm"] },
+          description:
+            result.mime === "video/mp4"
+              ? "Wideo MP4"
+              : result.mime === "video/webm"
+                ? "Wideo WebM"
+                : result.mime === "video/x-matroska"
+                  ? "Wideo Matroska"
+                  : "Animacja GIF",
+          accept: { [result.mime]: [extension] },
         },
       ],
     });
