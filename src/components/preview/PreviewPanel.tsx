@@ -15,6 +15,9 @@ export function PreviewPanel() {
   const settings = useProjectStore((s) => s.project.settings);
   const duration = useProjectStore((s) => projectDuration(s.project));
   const hasClips = useProjectStore((s) => s.project.clips.length > 0);
+  const clips = useProjectStore((s) => s.project.clips);
+  const updateClip = useProjectStore((s) => s.updateClip);
+  const selectedIds = useUiStore((s) => s.selectedClipIds);
   const notify = useUiStore((s) => s.notify);
   const { playing } = usePlaybackState();
 
@@ -94,6 +97,43 @@ export function PreviewPanel() {
       ? { maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto" }
       : { width: `${settings.width * (zoom as number) * 0.5}px`, height: "auto", maxWidth: "none", maxHeight: "none" };
 
+  const onCanvasPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (selectedIds.length !== 1) return;
+      const clip = clips.find((c) => c.id === selectedIds[0]);
+      if (!clip || clip.kind !== "text") return;
+
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      e.preventDefault();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startTransformX = clip.transform.x;
+      const startTransformY = clip.transform.y;
+
+      const move = (ev: PointerEvent) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+
+        const newX = startTransformX + (dx / rect.width) * 100;
+        const newY = startTransformY + (dy / rect.height) * 100;
+
+        updateClip(clip.id, { transform: { ...clip.transform, x: newX, y: newY } });
+        playbackEngine.requestRender();
+      };
+
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      };
+
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    },
+    [selectedIds, clips, updateClip]
+  );
+
   return (
     <section aria-label="Podgląd" className="flex h-full min-h-0 flex-col bg-surf-low">
       <div ref={wrapRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto bg-black/90 p-3">
@@ -101,8 +141,9 @@ export function PreviewPanel() {
           <canvas
             ref={canvasRef}
             style={canvasStyle}
-            className="rounded-[8px] shadow-[0_8px_32px_rgba(0,0,0,0.45)]"
+            className="rounded-[8px] shadow-[0_8px_32px_rgba(0,0,0,0.45)] cursor-move"
             aria-label="Podgląd projektu"
+            onPointerDown={onCanvasPointerDown}
           />
           {showSafe && (
             <div className="pointer-events-none absolute inset-0">

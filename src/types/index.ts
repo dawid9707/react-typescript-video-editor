@@ -249,8 +249,10 @@ export interface TextStyle {
   align: "left" | "center" | "right";
   color: string;
   opacity: number;
+  hasBackground?: boolean;
   background: string;
   backgroundOpacity: number;
+  hasStroke?: boolean;
   strokeColor: string;
   strokeWidth: number;
   shadow: boolean;

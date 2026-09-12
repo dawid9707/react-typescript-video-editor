@@ -94,9 +94,9 @@ function EffectsSection({ clip }: { clip: VideoClip | TextClip }) {
                   key={key}
                   label={key}
                   value={value}
-                  min={key === "angle" ? -180 : key === "blur" || key === "radius" ? 0 : key === "x" || key === "y" ? -100 : 0}
-                  max={key === "angle" ? 180 : key === "radius" || key === "blur" ? 40 : key === "x" || key === "y" ? 100 : key === "size" && fx.type === "pixelate" ? 100 : 2}
-                  step={key === "size" && fx.type === "pixelate" ? 1 : 0.01}
+                  min={key === "angle" ? -180 : key === "blur" || key === "radius" ? 0 : key === "x" || key === "y" ? -100 : key === "density" ? 2 : 0}
+                  max={key === "angle" ? 180 : key === "radius" || key === "blur" ? 40 : key === "x" || key === "y" ? 100 : key === "size" && fx.type === "pixelate" ? 100 : key === "density" ? 20 : 2}
+                  step={key === "size" && fx.type === "pixelate" ? 1 : key === "density" ? 1 : 0.01}
                   defaultValue={EFFECT_DEFAULTS[fx.type].params[key] ?? 0}
                   onChange={(v) => updateEffect(clip.id, fx.id, { params: { [key]: v } })}
                 />
@@ -385,15 +385,38 @@ function TextInspector({ clip }: { clip: TextClip | SubtitleClip }) {
       <SectionHeader title="Kolory" icon="palette" />
       <ColorInput label="Kolor tekstu" value={style.color} onChange={(v) => patchStyle({ color: v })} />
       <ParamRow label="Krycie" value={style.opacity} min={0} max={1} step={0.01} defaultValue={1} onChange={(v) => patchStyle({ opacity: v })} />
-      <ColorInput label="Tło" value={style.background} onChange={(v) => patchStyle({ background: v })} />
-      <ParamRow label="Krycie tła" value={style.backgroundOpacity} min={0} max={1} step={0.01} onChange={(v) => patchStyle({ backgroundOpacity: v })} />
-      <ColorInput label="Obrys" value={style.strokeColor} onChange={(v) => patchStyle({ strokeColor: v })} />
-      <ParamRow label="Grubość obrysu" unit="px" value={style.strokeWidth} min={0} max={12} step={0.5} onChange={(v) => patchStyle({ strokeWidth: v })} />
-      <label className="flex items-center justify-between py-1.5">
-        <span className="text-[12px] text-on-surface-variant">Cień</span>
+      
+      <label className="flex items-center justify-between py-1.5 mt-2">
+        <span className="text-[12px] text-on-surface-variant font-medium">Tło</span>
+        <Switch checked={style.hasBackground ?? (style.backgroundOpacity > 0)} onChange={(v) => patchStyle({ hasBackground: v })} label="Tło" />
+      </label>
+      {(style.hasBackground ?? (style.backgroundOpacity > 0)) && (
+        <div className="pl-2 border-l border-surface-variant/30 ml-1 mb-2">
+          <ColorInput label="Kolor tła" value={style.background} onChange={(v) => patchStyle({ background: v })} />
+          <ParamRow label="Krycie tła" value={style.backgroundOpacity} min={0} max={1} step={0.01} onChange={(v) => patchStyle({ backgroundOpacity: v })} />
+        </div>
+      )}
+
+      <label className="flex items-center justify-between py-1.5 mt-2">
+        <span className="text-[12px] text-on-surface-variant font-medium">Obrys</span>
+        <Switch checked={style.hasStroke ?? (style.strokeWidth > 0)} onChange={(v) => patchStyle({ hasStroke: v })} label="Obrys" />
+      </label>
+      {(style.hasStroke ?? (style.strokeWidth > 0)) && (
+        <div className="pl-2 border-l border-surface-variant/30 ml-1 mb-2">
+          <ColorInput label="Kolor obrysu" value={style.strokeColor} onChange={(v) => patchStyle({ strokeColor: v })} />
+          <ParamRow label="Grubość obrysu" unit="px" value={style.strokeWidth} min={0} max={12} step={0.5} onChange={(v) => patchStyle({ strokeWidth: v })} />
+        </div>
+      )}
+
+      <label className="flex items-center justify-between py-1.5 mt-2">
+        <span className="text-[12px] text-on-surface-variant font-medium">Cień</span>
         <Switch checked={style.shadow} onChange={(v) => patchStyle({ shadow: v })} label="Cień" />
       </label>
-      {style.shadow && <ParamRow label="Rozmycie cienia" unit="px" value={style.shadowBlur} min={0} max={60} step={1} precision={0} defaultValue={18} onChange={(v) => patchStyle({ shadowBlur: v })} />}
+      {style.shadow && (
+        <div className="pl-2 border-l border-surface-variant/30 ml-1 mb-2">
+          <ParamRow label="Rozmycie cienia" unit="px" value={style.shadowBlur} min={0} max={60} step={1} precision={0} defaultValue={18} onChange={(v) => patchStyle({ shadowBlur: v })} />
+        </div>
+      )}
 
       {isSubtitle ? (
         <>
