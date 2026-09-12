@@ -4,13 +4,13 @@
     // Aby uzyskać więcej informacji, odwiedź stronę: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
+
         {
-            "type": "chrome",
+            "name": "Launch Chrome",
             "request": "launch",
-            "name": "Uruchom przeglądarkę Chrome względem hosta lokalnego",
+            "type": "chrome",
             "url": "http://localhost:8080",
-            "webRoot": "${workspaceFolder}"
-        }
+            "webRoot": "${/workspaces/react-typescript-video-editor/src/App.tsx}"
+        },
     ]
 }
