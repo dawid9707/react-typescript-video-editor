@@ -69,7 +69,6 @@ export function buildFFmpegArgs(s: ExportSettings, inputName: string, outputName
 const FFMPEG_VERSION = "0.12.10";
 const CORE_VERSION = "0.12.6";
 const ESM_URL = `https://unpkg.com/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/index.js`;
-const WORKER_URL = `https://unpkg.com/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/worker.js`;
 const CORE_BASE = `https://unpkg.com/@ffmpeg/core@${CORE_VERSION}/dist/esm`;
 
 async function toBlobURL(url: string, mime: string, onProgress?: (r: number) => void): Promise<string> {
@@ -123,12 +122,11 @@ export class WasmFFmpeg implements FFmpegEngine {
       const mod = (await import(/* @vite-ignore */ ESM_URL)) as {
         FFmpeg: new () => FFmpegInstance;
       };
-      const classWorkerURL = await toBlobURL(WORKER_URL, "text/javascript");
       const coreURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript", (r) =>
-        onProgress?.(0.05 + r * 0.15, "Pobieranie rdzenia FFmpeg…"),
+        onProgress?.(0.1 + r * 0.3, "Pobieranie rdzenia FFmpeg…"),
       );
       const wasmURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm", (r) =>
-        onProgress?.(0.2 + r * 0.6, "Pobieranie ffmpeg-core.wasm…"),
+        onProgress?.(0.4 + r * 0.4, "Pobieranie ffmpeg-core.wasm…"),
       );
       const ff = new mod.FFmpeg();
       ff.on("log", () => undefined);
@@ -137,8 +135,8 @@ export class WasmFFmpeg implements FFmpegEngine {
         const ratio = this.durationHint > 0 ? Math.min(1, p.time / 1_000_000 / this.durationHint) : p.progress;
         if (isFinite(ratio) && ratio >= 0) this.progressCb?.(Math.min(0.999, ratio), "Transkodowanie FFmpeg…");
       });
-      onProgress?.(0.85, "Inicjalizacja rdzenia…");
-      await ff.load({ coreURL, wasmURL, classWorkerURL });
+      onProgress?.(0.85, "Inicjalizacja rdzenia FFmpeg…");
+      await ff.load({ coreURL, wasmURL });
       this.instance = ff;
       onProgress?.(1, "FFmpeg gotowy");
     })();

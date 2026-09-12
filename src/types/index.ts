@@ -324,7 +324,7 @@ export type ExportContainer = "mp4" | "webm" | "mkv" | "gif";
 export type ExportVideoCodec = "h264" | "h265" | "vp9" | "vp8" | "av1";
 export type ExportAudioCodec = "aac" | "opus" | "vorbis" | "none";
 export type ExportQuality = "low" | "medium" | "high" | "veryhigh" | "custom";
-export type ExportEngineId = "mediarecorder" | "ffmpeg-wasm" | "backend";
+export type ExportEngineId = "mediarecorder" | "backend";
 export type ExportDestination = "download" | "filesystem";
 
 export interface ExportSettings {

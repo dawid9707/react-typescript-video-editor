@@ -60,12 +60,10 @@ export function ExportDialog() {
     settings.engine === "mediarecorder"
       ? nativeMime
         ? `Przeglądarka koduje natywnie: ${nativeMime}`
-        : "Ta kombinacja kontenera i kodeka nie jest obsługiwana natywnie — wybierz silnik FFmpeg."
-      : settings.engine === "ffmpeg-wasm"
-        ? "Render w przeglądarce, następnie transkodowanie ffmpeg.wasm (pobierane z CDN przy pierwszym użyciu)."
-        : backendUrl
-          ? `Transkodowanie po stronie serwera: ${backendUrl}`
-          : "Podaj adres backendu w Ustawieniach → Silnik renderowania.";
+        : "Ta kombinacja kontenera i kodeka nie jest obsługiwana natywnie."
+      : backendUrl
+        ? `Transkodowanie po stronie serwera: ${backendUrl}`
+        : "Podaj adres backendu w Ustawieniach → Silnik renderowania.";
 
   const estimated = estimateFileSize(settings, duration);
   const running = phase === "preparing" || phase === "rendering" || phase === "transcoding" || phase === "finalizing";
@@ -341,7 +339,6 @@ export function ExportDialog() {
             onChange={(v) => store.patch({ engine: v as ExportEngineId })}
             options={[
               { value: "mediarecorder", label: "Przeglądarka", icon: "speed" },
-              { value: "ffmpeg-wasm", label: "FFmpeg WASM", icon: "memory" },
               { value: "backend", label: "Backend", icon: "dns" },
             ]}
           />
