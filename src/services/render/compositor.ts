@@ -230,33 +230,83 @@ function drawPostEffects(
         ctx.restore();
       }
     }
-    if (fx.type === "vhs" && (p.shift ?? p.amount ?? 0) > 0 && source) {
-      const shiftAmt = p.shift ?? p.amount ?? 0.4;
-      const noiseAmt = p.noise ?? 0.3;
+    if (fx.type === "vhs" && source) {
+      const bleed = p.bleed ?? 0.5;
+      const head = p.head ?? 0.3;
+      const tracking = p.tracking ?? 0.2;
+      const jitter = p.jitter ?? 0.1;
       const degradeAmt = p.degrade ?? 0.5;
-      const shift = Math.max(1, shiftAmt * 12);
+
       const sW = (source as any).videoWidth || (source as any).naturalWidth || source.width;
       const sH = (source as any).videoHeight || (source as any).naturalHeight || source.height;
       if (sW && sH) {
         ctx.save();
-        ctx.globalCompositeOperation = "screen";
-        ctx.globalAlpha = clamp(shiftAmt, 0, 1) * 0.6;
-        const sat = 1 + (1 - degradeAmt) * 3;
-        ctx.filter = `sepia(${degradeAmt}) hue-rotate(-50deg) saturate(${sat}) brightness(${1 - degradeAmt * 0.2})`;
-        ctx.drawImage(source, 0, 0, sW, sH, rect.x - shift, rect.y, rect.w, rect.h);
-        ctx.filter = `sepia(${degradeAmt}) hue-rotate(150deg) saturate(${sat}) brightness(${1 - degradeAmt * 0.2})`;
-        ctx.drawImage(source, 0, 0, sW, sH, rect.x + shift, rect.y, rect.w, rect.h);
-        ctx.restore();
+        
+        // Jitter (horizontal shake)
+        const frameT = Math.floor(time * 30);
+        const jitterShift = jitter > 0 ? (Math.random() - 0.5) * jitter * 20 : 0;
+        const jx = rect.x + jitterShift;
 
-        if (noiseAmt > 0) {
-          ctx.save();
-          const noiseY = (time * 150) % rect.h;
-          ctx.fillStyle = `rgba(255, 255, 255, ${noiseAmt * 0.5})`;
-          ctx.globalCompositeOperation = "overlay";
-          ctx.fillRect(rect.x, rect.y + noiseY, rect.w, 4 + Math.random() * 8);
-          ctx.fillRect(rect.x, rect.y + noiseY + 15, rect.w, 2 + Math.random() * 4);
-          ctx.restore();
+        // Base image with luma degradation
+        const sat = 1 + (1 - degradeAmt) * 0.5;
+        ctx.filter = `sepia(${degradeAmt * 0.6}) saturate(${sat}) brightness(${1 - degradeAmt * 0.1}) contrast(${1 - degradeAmt * 0.2})`;
+        ctx.drawImage(source, 0, 0, sW, sH, jx, rect.y, rect.w, rect.h);
+
+        // Chroma bleed (color bleeding & shifting)
+        if (bleed > 0) {
+          ctx.globalCompositeOperation = "screen";
+          ctx.globalAlpha = clamp(bleed, 0, 1) * 0.6;
+          const shift = Math.max(1, bleed * 12);
+          
+          ctx.filter = `sepia(1) hue-rotate(-50deg) saturate(3) blur(${bleed * 2}px)`;
+          ctx.drawImage(source, 0, 0, sW, sH, jx - shift, rect.y, rect.w, rect.h);
+          
+          ctx.filter = `sepia(1) hue-rotate(150deg) saturate(3) blur(${bleed * 2}px)`;
+          ctx.drawImage(source, 0, 0, sW, sH, jx + shift, rect.y, rect.w, rect.h);
         }
+
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
+        ctx.filter = "none";
+
+        // Head switching noise (bottom skew/distortion)
+        if (head > 0) {
+          const headHeight = Math.max(2, rect.h * head * 0.1);
+          const headY = rect.y + rect.h - headHeight;
+          const srcHeadY = sH - (sH * head * 0.1);
+          const skewX = Math.sin(frameT) * head * 30;
+          
+          // Clear area and redraw skewed
+          ctx.clearRect(rect.x, headY, rect.w, headHeight);
+          ctx.drawImage(source, 0, srcHeadY, sW, sH - srcHeadY, rect.x + skewX, headY, rect.w, headHeight);
+          // Add static noise over head switching
+          ctx.fillStyle = `rgba(255,255,255,${head * 0.5})`;
+          for (let i = 0; i < 5; i++) {
+            if (Math.random() > 0.5) {
+              ctx.fillRect(rect.x, headY + Math.random() * headHeight, rect.w, 1 + Math.random() * 2);
+            }
+          }
+        }
+
+        // Tracking noise (tape damage lines moving up/down)
+        if (tracking > 0) {
+          ctx.globalCompositeOperation = "overlay";
+          ctx.fillStyle = `rgba(255, 255, 255, ${tracking * 0.7})`;
+          
+          // Primary rolling tracking line
+          const noiseY = (time * 150) % rect.h;
+          ctx.fillRect(rect.x, rect.y + noiseY, rect.w, 3 + Math.random() * 5);
+          ctx.fillRect(rect.x, rect.y + noiseY + 8, rect.w, 1 + Math.random() * 3);
+          
+          // Random dropouts
+          if (Math.random() < tracking) {
+            const dropY = rect.y + Math.random() * rect.h;
+            ctx.fillStyle = `rgba(0, 0, 0, ${tracking * 0.5})`;
+            ctx.fillRect(rect.x, dropY, rect.w, 2 + Math.random() * 4);
+          }
+        }
+        
+        ctx.restore();
       }
     }
     if (fx.type === "glitch" && (p.amount ?? 0) > 0 && source) {

@@ -42,7 +42,7 @@ export const defaultExportSettings: ExportSettings = {
   videoBitrate: 12000,
   audioBitrate: 192,
   sampleRate: 48000,
-  engine: "mediarecorder",
+  engine: "ffmpeg-wasm",
   destination: "download",
   burnSubtitles: true,
   rangeStart: null,

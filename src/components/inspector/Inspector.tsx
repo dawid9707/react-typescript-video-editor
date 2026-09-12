@@ -89,10 +89,29 @@ function EffectsSection({ clip }: { clip: VideoClip | TextClip }) {
           </div>
           {fx.enabled && (
             <div className="pt-1">
-              {Object.entries(fx.params).map(([key, value]) => (
+              {Object.entries(fx.params).map(([key, value]) => {
+                const labelMap: Record<string, string> = {
+                  amount: "Intensywność",
+                  radius: "Rozmycie",
+                  x: "Przesunięcie X",
+                  y: "Przesunięcie Y",
+                  blur: "Rozmycie",
+                  size: "Rozmiar",
+                  density: "Gęstość",
+                  frequency: "Częstotliwość",
+                  rgbSplit: "Rozszczepienie RGB",
+                  shift: "Przesunięcie",
+                  noise: "Szum",
+                  degrade: "Degradacja (ntsc)",
+                  bleed: "Bleed (ntsc)",
+                  head: "Głowica (ntsc)",
+                  tracking: "Taśma (ntsc)",
+                  jitter: "Jitter (ntsc)",
+                };
+                return (
                 <ParamRow
                   key={key}
-                  label={key}
+                  label={labelMap[key] || key}
                   value={value}
                   min={key === "angle" ? -180 : key === "blur" || key === "radius" ? 0 : key === "x" || key === "y" ? -100 : key === "density" ? 2 : 0}
                   max={key === "angle" ? 180 : key === "radius" || key === "blur" ? 40 : key === "x" || key === "y" ? 100 : key === "size" && fx.type === "pixelate" ? 100 : key === "density" ? 20 : 2}
@@ -100,7 +119,8 @@ function EffectsSection({ clip }: { clip: VideoClip | TextClip }) {
                   defaultValue={EFFECT_DEFAULTS[fx.type].params[key] ?? 0}
                   onChange={(v) => updateEffect(clip.id, fx.id, { params: { [key]: v } })}
                 />
-              ))}
+                );
+              })}
               {fx.color && <ColorInput label="Kolor" value={fx.color} onChange={(v) => updateEffect(clip.id, fx.id, { color: v })} />}
             </div>
           )}
