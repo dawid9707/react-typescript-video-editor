@@ -1,0 +1,290 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Material Design 3 – system colour tokens.
+   Values are injected at runtime by src/theme/palette.ts (dynamic
+   colour from the chosen accent + light / dark / amoled scheme).
+   The defaults below are the "Studio Indigo" light scheme.
+------------------------------------------------------------------- */
+:root {
+  --md-primary: #4a5bb9;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #dee0ff;
+  --md-on-primary-container: #00105c;
+  --md-secondary: #5a5d72;
+  --md-on-secondary: #ffffff;
+  --md-secondary-container: #dfe0f9;
+  --md-on-secondary-container: #171a2c;
+  --md-tertiary: #76546d;
+  --md-on-tertiary: #ffffff;
+  --md-tertiary-container: #ffd7f2;
+  --md-on-tertiary-container: #2c1228;
+  --md-error: #ba1a1a;
+  --md-on-error: #ffffff;
+  --md-error-container: #ffdad6;
+  --md-on-error-container: #410002;
+  --md-background: #fbf8ff;
+  --md-on-background: #1b1b21;
+  --md-surface: #fbf8ff;
+  --md-on-surface: #1b1b21;
+  --md-surface-variant: #e3e1ec;
+  --md-on-surface-variant: #46464f;
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #f5f2fa;
+  --md-surface-container: #efedf4;
+  --md-surface-container-high: #eae7ef;
+  --md-surface-container-highest: #e4e1e9;
+  --md-outline: #777680;
+  --md-outline-variant: #c7c5d0;
+  --md-inverse-surface: #303036;
+  --md-inverse-on-surface: #f3eff7;
+  --md-inverse-primary: #bac3ff;
+  --md-scrim: #000000;
+  --md-shadow: #000000;
+
+  /* semantic timeline colours */
+  --md-track-video: #6c72d8;
+  --md-track-audio: #3f9d7b;
+  --md-track-text: #c67b2f;
+  --md-track-subtitle: #9a5bbd;
+
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-primary: var(--md-primary);
+  --color-on-primary: var(--md-on-primary);
+  --color-primary-container: var(--md-primary-container);
+  --color-on-primary-container: var(--md-on-primary-container);
+  --color-secondary: var(--md-secondary);
+  --color-on-secondary: var(--md-on-secondary);
+  --color-secondary-container: var(--md-secondary-container);
+  --color-on-secondary-container: var(--md-on-secondary-container);
+  --color-tertiary: var(--md-tertiary);
+  --color-on-tertiary: var(--md-on-tertiary);
+  --color-tertiary-container: var(--md-tertiary-container);
+  --color-on-tertiary-container: var(--md-on-tertiary-container);
+  --color-error: var(--md-error);
+  --color-on-error: var(--md-on-error);
+  --color-error-container: var(--md-error-container);
+  --color-on-error-container: var(--md-on-error-container);
+  --color-background: var(--md-background);
+  --color-on-background: var(--md-on-background);
+  --color-surface: var(--md-surface);
+  --color-on-surface: var(--md-on-surface);
+  --color-surface-variant: var(--md-surface-variant);
+  --color-on-surface-variant: var(--md-on-surface-variant);
+  --color-surf-lowest: var(--md-surface-container-lowest);
+  --color-surf-low: var(--md-surface-container-low);
+  --color-surf: var(--md-surface-container);
+  --color-surf-high: var(--md-surface-container-high);
+  --color-surf-highest: var(--md-surface-container-highest);
+  --color-outline: var(--md-outline);
+  --color-outline-variant: var(--md-outline-variant);
+  --color-inverse-surface: var(--md-inverse-surface);
+  --color-inverse-on-surface: var(--md-inverse-on-surface);
+  --color-inverse-primary: var(--md-inverse-primary);
+
+  --font-sans: "Roboto Flex", "Google Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, monospace;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 28px;
+
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--md-background);
+  color: var(--md-on-background);
+  font-family: "Roboto Flex", "Google Sans", system-ui, sans-serif;
+  font-optical-sizing: auto;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.msym {
+  font-family: "Material Symbols Rounded";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  user-select: none;
+}
+.msym-fill {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* ---------- scrollbars (M3 flavoured) ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--md-outline) 45%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--md-outline) 75%, transparent);
+  background-clip: content-box;
+}
+
+/* ---------- focus ring ---------- */
+:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- M3 state layers ---------- */
+.state-layer {
+  position: relative;
+  isolation: isolate;
+}
+.state-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 120ms var(--ease-standard);
+  pointer-events: none;
+}
+.state-layer:hover::after {
+  opacity: 0.08;
+}
+.state-layer:active::after {
+  opacity: 0.12;
+}
+
+/* ---------- native range slider → M3 look ---------- */
+input[type="range"].md-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].md-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--md-primary) calc(var(--val, 0) * 100%),
+    color-mix(in srgb, var(--md-surface-variant) 100%, transparent) calc(var(--val, 0) * 100%)
+  );
+}
+input[type="range"].md-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 999px;
+  background: var(--md-primary);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-primary) 12%, transparent);
+  transition: box-shadow 120ms var(--ease-standard);
+}
+input[type="range"].md-slider:hover::-webkit-slider-thumb {
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--md-primary) 12%, transparent);
+}
+input[type="range"].md-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--md-primary);
+}
+input[type="range"].md-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--md-surface-variant);
+}
+
+/* ---------- animations ---------- */
+@keyframes md-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes md-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes md-sheet-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes md-indeterminate {
+  0% {
+    transform: translateX(-100%) scaleX(0.4);
+  }
+  100% {
+    transform: translateX(250%) scaleX(0.5);
+  }
+}
+.anim-fade {
+  animation: md-fade-in 160ms var(--ease-standard) both;
+}
+.anim-scale {
+  animation: md-scale-in 220ms var(--ease-emphasized) both;
+}
+.anim-sheet {
+  animation: md-sheet-up 240ms var(--ease-emphasized) both;
+}
+
+.no-select {
+  user-select: none;
+}
+
+.checkerboard {
+  background-image: linear-gradient(45deg, #2a2a2e 25%, transparent 25%),
+    linear-gradient(-45deg, #2a2a2e 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #2a2a2e 75%),
+    linear-gradient(-45deg, transparent 75%, #2a2a2e 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background-color: #202024;
+}
