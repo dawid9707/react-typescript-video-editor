@@ -135,13 +135,9 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
   req.onProgress("preparing", 0.02, "Przygotowywanie renderera…");
 
   if (settings.engine === "mediarecorder") {
-    const mime = findRecorderMime(settings.container, settings.videoCodec, settings.audioCodec);
+    let mime = findRecorderMime(settings.container, settings.videoCodec, settings.audioCodec);
     if (!mime) {
-      throw new Error(
-        `Przeglądarka nie potrafi zakodować ${settings.videoCodec.toUpperCase()} w kontenerze ${settings.container.toUpperCase()}. ` +
-          `Dostępne kombinacje: ${capabilities.recorderMimeTypes.join(", ") || "brak"}. ` +
-          `Wybierz silnik FFmpeg WebAssembly, aby przekodować materiał.`,
-      );
+      mime = bestIntermediateMime() || 'video/webm;codecs="vp8,opus"';
     }
     let blob = await recordTimeline(req, mime);
     if (extFor(mime, settings.container) === "webm" || mime.includes("webm")) {

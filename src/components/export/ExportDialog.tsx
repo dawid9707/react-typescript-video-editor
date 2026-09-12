@@ -60,7 +60,7 @@ export function ExportDialog() {
     settings.engine === "mediarecorder"
       ? nativeMime
         ? `Przeglądarka koduje natywnie: ${nativeMime}`
-        : "Ta kombinacja kontenera i kodeka nie jest obsługiwana natywnie."
+        : "Wybrany format nie jest wspierany natywnie — zostanie użyty automatyczny format zgodny z Twoją przeglądarką."
       : backendUrl
         ? `Transkodowanie po stronie serwera: ${backendUrl}`
         : "Podaj adres backendu w Ustawieniach → Silnik renderowania.";
