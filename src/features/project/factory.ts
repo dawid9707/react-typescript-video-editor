@@ -80,7 +80,7 @@ export const EFFECT_DEFAULTS: Record<EffectType, { label: string; icon: string; 
   glow: { label: "Poświata", icon: "flare", params: { amount: 0.4, radius: 14 } },
   shadow: { label: "Cień", icon: "shadow", params: { x: 0, y: 10, blur: 18 }, color: "rgba(0,0,0,0.6)" },
   colorize: { label: "Koloryzacja", icon: "format_color_fill", params: { amount: 0.4 }, color: "#4a5bb9" },
-  vhs: { label: "VHS", icon: "videocam", params: { shift: 0.4, noise: 0.15, degrade: 0.5 } },
+  vhs: { label: "ntsc-rs VHS", icon: "videocam", params: { bleed: 0.5, head: 0.3, tracking: 0.2, jitter: 0.1, degrade: 0.5 } },
   glitch: { label: "Glitch", icon: "broken_image", params: { amount: 0.3, frequency: 0.5, rgbSplit: 0.5 } },
   pixelate: { label: "Pikseloza", icon: "grid_on", params: { size: 10 } },
   scanlines: { label: "Linie TV", icon: "tv", params: { amount: 0.4, density: 4 } },

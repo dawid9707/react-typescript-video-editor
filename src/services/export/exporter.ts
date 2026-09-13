@@ -1,9 +1,15 @@
 import type { ExportPhase, ExportSettings, MediaAsset, Project } from "@/types";
 import { playbackEngine } from "@/services/playback/engine";
+<<<<<<< HEAD
 import { bestIntermediateMime, capabilities, exportFormat, findRecorderMime } from "@/services/export/capabilities";
 import { BackendFFmpeg, getWasmFFmpeg, type FFmpegEngine } from "@/services/ffmpeg";
+=======
+import { bestIntermediateMime, capabilities, findRecorderMime } from "@/services/export/capabilities";
+import { BackendFFmpeg, type FFmpegEngine } from "@/services/ffmpeg";
+>>>>>>> origin/main
 import { projectDuration } from "@/features/timeline/selectors";
 import { downloadBlob } from "@/utils/format";
+import fixWebmDuration from "webm-duration-fix";
 
 export interface ExportRequest {
   project: Project;
@@ -131,15 +137,19 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
   req.onProgress("preparing", 0.02, "Przygotowywanie renderera…");
 
   if (settings.engine === "mediarecorder") {
-    const mime = findRecorderMime(settings.container, settings.videoCodec, settings.audioCodec);
+    let mime = findRecorderMime(settings.container, settings.videoCodec, settings.audioCodec);
     if (!mime) {
-      throw new Error(
-        `Przeglądarka nie potrafi zakodować ${settings.videoCodec.toUpperCase()} w kontenerze ${settings.container.toUpperCase()}. ` +
-          `Dostępne kombinacje: ${capabilities.recorderMimeTypes.join(", ") || "brak"}. ` +
-          `Wybierz silnik FFmpeg WebAssembly, aby przekodować materiał.`,
-      );
+      mime = bestIntermediateMime() || 'video/webm;codecs="vp8,opus"';
     }
-    const blob = await recordTimeline(req, mime);
+    let blob = await recordTimeline(req, mime);
+    if (extFor(mime, settings.container) === "webm" || mime.includes("webm")) {
+      try {
+        req.onProgress("preparing", 0.95, "Naprawianie metadanych WebM…");
+        blob = await fixWebmDuration(blob);
+      } catch (err) {
+        console.warn("Nie udało się naprawić czasu trwania WebM:", err);
+      }
+    }
     req.onProgress("finalizing", 0.98, "Finalizowanie pliku…");
     const format = exportFormat(settings.container);
     return { blob, fileName: `${sanitize(project.name)}.${format.extension}`, mime, durationSec: duration };
@@ -149,14 +159,17 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
   if (!intermediate) throw new Error("Brak obsługiwanego formatu pośredniego dla MediaRecorder.");
   const raw = await recordTimeline(req, intermediate);
 
-  const engine: FFmpegEngine =
-    settings.engine === "backend" ? new BackendFFmpeg(req.backendUrl) : getWasmFFmpeg();
-  if (settings.engine === "ffmpeg-wasm") getWasmFFmpeg().setDurationHint(duration);
+  const engine: FFmpegEngine = new BackendFFmpeg(req.backendUrl);
 
   req.onProgress("transcoding", 0.02, `Inicjalizacja: ${engine.name}…`);
   const inExt = intermediate.includes("mp4") ? "mp4" : "webm";
+<<<<<<< HEAD
   const format = exportFormat(settings.container);
   const blob = await engine.transcode({
+=======
+  const outExt = settings.container === "mp4" ? "mp4" : "webm";
+  let blob = await engine.transcode({
+>>>>>>> origin/main
     input: raw,
     inputName: `input.${inExt}`,
     outputName: `output.${format.extension}`,
@@ -164,6 +177,14 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
     signal: req.signal,
     onProgress: (ratio, message) => req.onProgress("transcoding", ratio, message),
   });
+  if (outExt === "webm") {
+    try {
+      req.onProgress("finalizing", 0.95, "Naprawianie metadanych WebM…");
+      blob = await fixWebmDuration(blob);
+    } catch (err) {
+      console.warn("Nie udało się naprawić czasu trwania transkodowanego WebM:", err);
+    }
+  }
   req.onProgress("finalizing", 0.98, "Finalizowanie pliku…");
   return {
     blob,
