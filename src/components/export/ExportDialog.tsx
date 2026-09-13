@@ -102,11 +102,10 @@ export function ExportDialog() {
   const engineNote =
     settings.engine === "mediarecorder"
       ? nativeMime
-        ? `Przeglądarka koduje natywnie: ${nativeMime}`
-        : "Wybrany format nie jest wspierany natywnie — zostanie użyty automatyczny format zgodny z Twoją przeglądarką."
-      : backendUrl
-        ? `Transkodowanie po stronie serwera: ${backendUrl}`
-        : "Podaj adres backendu w Ustawieniach → Silnik renderowania.";
+  ? `Przeglądarka koduje natywnie: ${nativeMime}`
+  : null
+  : null;
+
 
   const estimated = estimateFileSize(settings, duration);
   const running = phase === "preparing" || phase === "rendering" || phase === "transcoding" || phase === "finalizing";
@@ -442,7 +441,7 @@ export function ExportDialog() {
           )}
           <label className="flex items-center justify-between rounded-[12px] bg-surf p-3">
             <span className="text-[12px] text-on-surface">Wypal napisy w obrazie</span>
-            <Switch checked={settings.burnSubtitles} onChange={(v) => store.patch({ burnSubtitles: v })} label="Wypal napisy" />
+            <Switch checked={settings.burnSubtitles} onChange={(v) => store.patch({ burnSubtitrate: v })} label="Wypal napisy" />
           </label>
 
           <div className="mt-1 flex flex-wrap items-center justify-between gap-2 rounded-[16px] bg-surf p-3">
