@@ -86,7 +86,7 @@ export default function App() {
 
   const [leftWidth, setLeftWidth] = useState(320);
   const [rightWidth, setRightWidth] = useState(316);
-  const [timelineHeight, setTimelineHeight] = useState(320);
+  const [timelineHeight, setTimelineHeight] = useState(230);
   const [dropping, setDropping] = useState(false);
   const [mobileSheet, setMobileSheet] = useState<"library" | "inspector" | null>(null);
   const dragDepth = useRef(0);
@@ -214,7 +214,7 @@ export default function App() {
 
         <Divider
           orientation="horizontal"
-          onDrag={(d) => setTimelineHeight((h) => Math.max(180, Math.min(window.innerHeight - 260, h - d)))}
+          onDrag={(d) => setTimelineHeight((h) => Math.max(160, Math.min(window.innerHeight - 220, h - d)))}
         />
 
         <div className="flex min-h-0 flex-col" style={{ height: timelineHeight }}>

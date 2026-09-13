@@ -64,7 +64,7 @@ export function TopAppBar({
           <Icon name="movie_edit" size={20} filled />
         </span>
         <span className="hidden text-[15px] font-medium tracking-tight text-on-surface lg:block">
-          Material Video Studio
+          FreeCut
         </span>
       </div>
 
