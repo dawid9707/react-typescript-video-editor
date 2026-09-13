@@ -13,6 +13,25 @@ export interface Capabilities {
   recorderMimeTypes: string[];
 }
 
+export interface ExportFormat {
+  extension: string;
+  mime: string;
+}
+
+export function exportFormat(container: ExportContainer): ExportFormat {
+  switch (container) {
+    case "mp4":
+      return { extension: "mp4", mime: "video/mp4" };
+    case "mkv":
+      return { extension: "mkv", mime: "video/x-matroska" };
+    case "gif":
+      return { extension: "gif", mime: "image/gif" };
+    case "webm":
+    default:
+      return { extension: "webm", mime: "video/webm" };
+  }
+}
+
 const CANDIDATE_MIMES = [
   'video/mp4;codecs="avc1.640028,mp4a.40.2"',
   'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
@@ -73,6 +92,7 @@ export function findRecorderMime(
   audio: ExportAudioCodec,
 ): string | null {
   if (typeof MediaRecorder === "undefined") return null;
+  if (container !== "mp4" && container !== "webm") return null;
   const base = container === "mp4" ? "video/mp4" : "video/webm";
   for (const v of CODEC_TAG[video]) {
     const audioTags = AUDIO_TAG[audio].length ? AUDIO_TAG[audio] : [null];
