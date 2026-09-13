@@ -3,7 +3,7 @@ import { Icon, IconButton, SegmentedButtons, Tooltip } from "@/components/ui";
 import { useProjectStore } from "@/stores/projectStore";
 import { useUiStore } from "@/stores/uiStore";
 import { playbackEngine } from "@/services/playback/engine";
-import { usePlaybackState, usePlayheadRef } from "@/hooks/usePlayback";
+import { usePlaybackPlaying, usePlayheadRef } from "@/hooks/usePlayback";
 import { isTextClip, projectDuration } from "@/features/timeline/selectors";
 import { formatTimecode } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -19,7 +19,7 @@ export function PreviewPanel() {
   const updateClip = useProjectStore((s) => s.updateClip);
   const selectedIds = useUiStore((s) => s.selectedClipIds);
   const notify = useUiStore((s) => s.notify);
-  const { playing } = usePlaybackState();
+  const playing = usePlaybackPlaying();
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);

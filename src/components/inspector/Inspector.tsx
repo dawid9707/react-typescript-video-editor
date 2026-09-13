@@ -235,6 +235,24 @@ function VideoInspector({ clip }: { clip: VideoClip }) {
               <Switch checked={clip.freezeFrame} onChange={(v) => update(clip.id, { freezeFrame: v } as Partial<Clip>)} label="Stop-klatka" />
             </label>
 
+            <SectionHeader title="Automatyczna poprawa" icon="auto_awesome" />
+            <div className="flex flex-wrap gap-1.5 py-1">
+              <Button
+                variant="tonal"
+                icon="auto_awesome"
+                onClick={() => useProjectStore.getState().addEffect(clip.id, { id: `fx_enhance_${clip.id}`, type: "enhance", enabled: true, params: { amount: 0.45, detail: 0.35 } })}
+              >
+                Popraw jakość
+              </Button>
+              <Button
+                variant="tonal"
+                icon="motion_blur"
+                onClick={() => useProjectStore.getState().addEffect(clip.id, { id: `fx_stabilize_${clip.id}`, type: "stabilize", enabled: true, params: { amount: 0.65, crop: 0.08 } })}
+              >
+                Stabilizuj
+              </Button>
+            </div>
+
             <SectionHeader title="Kadrowanie" icon="crop" />
             {(["top", "bottom", "left", "right"] as const).map((edge) => (
               <ParamRow
@@ -289,6 +307,10 @@ function VideoInspector({ clip }: { clip: VideoClip }) {
             <ParamRow label="Głośność" value={clip.volume} min={0} max={2} step={0.01} defaultValue={1} onChange={(v) => update(clip.id, { volume: v } as Partial<Clip>)} />
             <ParamRow label="Fade in" unit="s" value={clip.fadeIn} min={0} max={Math.min(5, clip.duration / 2)} step={0.05} onChange={(v) => update(clip.id, { fadeIn: v } as Partial<Clip>)} />
             <ParamRow label="Fade out" unit="s" value={clip.fadeOut} min={0} max={Math.min(5, clip.duration / 2)} step={0.05} onChange={(v) => update(clip.id, { fadeOut: v } as Partial<Clip>)} />
+            <SectionHeader title="Poprawa dźwięku" icon="auto_awesome" />
+            <ParamRow label="Usuwanie szumu" value={clip.noiseReduction ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { noiseReduction: v } as Partial<Clip>)} />
+            <ParamRow label="Czytelność głosu" value={clip.voiceEnhance ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { voiceEnhance: v } as Partial<Clip>)} />
+            <ParamRow label="Kompresja" value={clip.compressor ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { compressor: v } as Partial<Clip>)} />
             <Button variant="tonal" icon="call_split" className="mt-3 w-full" onClick={() => useProjectStore.getState().detachAudio(clip.id)}>
               Odłącz audio na ścieżkę A
             </Button>
@@ -314,6 +336,10 @@ function AudioInspector({ clip }: { clip: AudioClip }) {
       <ParamRow label="Głośność" value={clip.volume} min={0} max={2} step={0.01} defaultValue={1} onChange={(v) => update(clip.id, { volume: v } as Partial<Clip>)} />
       <ParamRow label="Gain" value={clip.gain} min={0} max={3} step={0.01} defaultValue={1} onChange={(v) => update(clip.id, { gain: v } as Partial<Clip>)} />
       <ParamRow label="Panorama" value={clip.pan} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { pan: v } as Partial<Clip>)} />
+      <SectionHeader title="Poprawa dźwięku" icon="auto_awesome" />
+      <ParamRow label="Usuwanie szumu" value={clip.noiseReduction ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { noiseReduction: v } as Partial<Clip>)} />
+      <ParamRow label="Czytelność głosu" value={clip.voiceEnhance ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { voiceEnhance: v } as Partial<Clip>)} />
+      <ParamRow label="Kompresja" value={clip.compressor ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { compressor: v } as Partial<Clip>)} />
       <label className="flex items-center justify-between py-1.5">
         <span className="text-[12px] text-on-surface-variant">Wycisz fragment</span>
         <Switch checked={clip.muted} onChange={(v) => update(clip.id, { muted: v } as Partial<Clip>)} label="Wycisz" />

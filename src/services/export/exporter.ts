@@ -26,6 +26,18 @@ function sanitize(name: string): string {
   return name.replace(/[^\p{L}\p{N}\-_ ]/gu, "").trim() || "eksport";
 }
 
+async function repairWebmDuration(blob: Blob, onProgress: () => void): Promise<Blob> {
+  onProgress();
+  try {
+    const repaired = await fixWebmDuration(blob);
+    if (!repaired.size) throw new Error("Naprawiony plik WebM jest pusty.");
+    return repaired;
+  } catch (err) {
+    console.warn("Nie udało się naprawić czasu trwania WebM:", err);
+    return blob;
+  }
+}
+
 /**
  * Renders the timeline into a canvas in real time and captures it with
  * MediaRecorder (hardware accelerated in every modern browser).
@@ -103,7 +115,17 @@ async function recordTimeline(req: ExportRequest, mime: string): Promise<Blob> {
   });
 
   playbackEngine.pause();
-  if (recorder.state !== "inactive") recorder.stop();
+  if (recorder.state !== "inactive") {
+    await new Promise<void>((resolve) => {
+      const onFinalData = () => {
+        recorder.removeEventListener("dataavailable", onFinalData);
+        resolve();
+      };
+      recorder.addEventListener("dataavailable", onFinalData);
+      recorder.requestData();
+    });
+    recorder.stop();
+  }
   const blob = await finished;
   playbackEngine.removeTarget("export");
   playbackEngine.setRate(restoreRate);
@@ -138,15 +160,13 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
     }
     let blob = await recordTimeline(req, mime);
     if (settings.container === "webm" || mime.includes("webm")) {
-      try {
-        req.onProgress("preparing", 0.95, "Naprawianie metadanych WebM…");
-        blob = await fixWebmDuration(blob);
-      } catch (err) {
-        console.warn("Nie udało się naprawić czasu trwania WebM:", err);
-      }
+      blob = await repairWebmDuration(blob, () =>
+        req.onProgress("preparing", 0.95, "Naprawianie metadanych WebM…"),
+      );
     }
     req.onProgress("finalizing", 0.98, "Finalizowanie pliku…");
-    const format = exportFormat(settings.container);
+    const actualContainer = mime.includes("mp4") ? "mp4" : "webm";
+    const format = exportFormat(actualContainer);
     return { blob, fileName: `${sanitize(project.name)}.${format.extension}`, mime, durationSec: duration };
   }
 
@@ -168,12 +188,9 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
     onProgress: (ratio, message) => req.onProgress("transcoding", ratio, message),
   });
   if (format.extension === "webm") {
-    try {
-      req.onProgress("finalizing", 0.95, "Naprawianie metadanych WebM…");
-      blob = await fixWebmDuration(blob);
-    } catch (err) {
-      console.warn("Nie udało się naprawić czasu trwania transkodowanego WebM:", err);
-    }
+    blob = await repairWebmDuration(blob, () =>
+      req.onProgress("finalizing", 0.95, "Naprawianie metadanych WebM…"),
+    );
   }
   req.onProgress("finalizing", 0.98, "Finalizowanie pliku…");
   return {
@@ -204,19 +221,20 @@ export async function deliverResult(
       }
     ).showSaveFilePicker;
     const extension = result.fileName.slice(result.fileName.lastIndexOf("."));
+    const pickerMime = result.mime.split(";", 1)[0];
     const handle = await picker({
       suggestedName: result.fileName,
       types: [
         {
           description:
-            result.mime === "video/mp4"
+            pickerMime === "video/mp4"
               ? "Wideo MP4"
-              : result.mime === "video/webm"
+              : pickerMime === "video/webm"
                 ? "Wideo WebM"
-                : result.mime === "video/x-matroska"
+                : pickerMime === "video/x-matroska"
                   ? "Wideo Matroska"
                   : "Animacja GIF",
-          accept: { [result.mime]: [extension] },
+          accept: { [pickerMime]: [extension] },
         },
       ],
     });

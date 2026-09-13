@@ -60,8 +60,18 @@ function Divider({
   );
 }
 
-export default function App() {
+function PlaybackProjectSync() {
   const project = useProjectStore((s) => s.project);
+  const assetMap = useMemo(() => new Map(project.assets.map((a) => [a.id, a])), [project.assets]);
+
+  useEffect(() => {
+    playbackEngine.setProject(project, assetMap);
+  }, [project, assetMap]);
+
+  return null;
+}
+
+export default function App() {
   const newProject = useProjectStore((s) => s.newProject);
   const theme = useSettingsStore((s) => s.theme);
   const accent = useSettingsStore((s) => s.accent);
@@ -91,11 +101,6 @@ export default function App() {
     return () => mq.removeEventListener("change", handler);
   }, [theme, accent]);
 
-  /* keep the playback engine in sync with the project */
-  const assetMap = useMemo(() => new Map(project.assets.map((a) => [a.id, a])), [project.assets]);
-  useEffect(() => {
-    playbackEngine.setProject(project, assetMap);
-  }, [project, assetMap]);
   useEffect(() => () => playbackEngine.stop(), []);
 
   /* resume AudioContext on the first interaction */
@@ -164,6 +169,7 @@ export default function App() {
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
+      <PlaybackProjectSync />
       <TopAppBar
         onSave={() => void saveNow().then(() => notify("Projekt zapisany w przeglądarce."))}
         onNewProject={() => {

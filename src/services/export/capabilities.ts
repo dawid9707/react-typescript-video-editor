@@ -104,6 +104,10 @@ export function findRecorderMime(
   return null;
 }
 
+export function recorderSupports(container: ExportContainer, video: ExportVideoCodec, audio: ExportAudioCodec): boolean {
+  return findRecorderMime(container, video, audio) !== null;
+}
+
 /** Best available recorder mime — used as an intermediate for FFmpeg transcoding. */
 export function bestIntermediateMime(): string | null {
   if (typeof MediaRecorder === "undefined") return null;

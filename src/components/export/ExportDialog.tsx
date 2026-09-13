@@ -16,7 +16,7 @@ import { useProjectStore } from "@/stores/projectStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useUiStore } from "@/stores/uiStore";
 import { EXPORT_PROFILES, FPS_OPTIONS, RESOLUTION_PRESETS, estimateFileSize, recommendedBitrate } from "@/services/export/profiles";
-import { capabilities, findRecorderMime } from "@/services/export/capabilities";
+import { capabilities, findRecorderMime, recorderSupports } from "@/services/export/capabilities";
 import { deliverResult, runExport } from "@/services/export/exporter";
 import { projectDuration } from "@/features/timeline/selectors";
 import { serializeSrt } from "@/services/subtitles/parse";
@@ -57,24 +57,38 @@ export function ExportDialog() {
     !window.location.hostname.includes("app.github.dev") &&
     !window.location.hostname.includes("github.dev");
 
-  const mediaRecorderVideoOptions = settings.container === "webm"
-    ? [
-        { value: "vp8", label: "VP8" },
-      ]
-    : [
-        { value: "h264", label: "H.264 / AVC" },
-        { value: "h265", label: "H.265 / HEVC" },
-      ];
+  const mediaRecorderVideoCandidates = [
+    { value: "h264" as const, label: "H.264 / AVC" },
+    { value: "h265" as const, label: "H.265 / HEVC" },
+    { value: "vp9" as const, label: "VP9" },
+    { value: "vp8" as const, label: "VP8" },
+    { value: "av1" as const, label: "AV1" },
+  ];
+  const mediaRecorderAudioCandidates = [
+    { value: "aac" as const, label: "AAC" },
+    { value: "opus" as const, label: "Opus" },
+    { value: "vorbis" as const, label: "Vorbis" },
+    { value: "none" as const, label: "Bez dźwięku" },
+  ];
 
-  const mediaRecorderAudioOptions = settings.container === "webm"
-    ? [
-        { value: "opus", label: "Opus" },
-        { value: "none", label: "Bez dźwięku" },
-      ]
-    : [
-        { value: "aac", label: "AAC" },
-        { value: "none", label: "Bez dźwięku" },
-      ];
+  const mediaRecorderVideoOptions = mediaRecorderVideoCandidates.filter((video) =>
+    mediaRecorderAudioCandidates.some((audio) => recorderSupports(settings.container, video.value, audio.value)),
+  );
+  const mediaRecorderAudioOptions = mediaRecorderAudioCandidates.filter((audio) =>
+    mediaRecorderVideoCandidates.some((video) => recorderSupports(settings.container, video.value, audio.value)),
+  );
+  const supportedContainers = (["mp4", "webm"] as ExportContainer[]).filter((container) =>
+    mediaRecorderVideoCandidates.some((video) =>
+      mediaRecorderAudioCandidates.some((audio) => recorderSupports(container, video.value, audio.value)),
+    ),
+  );
+  const visibleProfiles = EXPORT_PROFILES.filter((profile) => {
+    if (settings.engine !== "mediarecorder" || profile.id === "custom") return true;
+    const container = profile.patch.container ?? settings.container;
+    const video = profile.patch.videoCodec ?? settings.videoCodec;
+    const audio = profile.patch.audioCodec ?? settings.audioCodec;
+    return recorderSupports(container, video, audio);
+  });
 
   const videoCodecOptions = settings.engine === "mediarecorder"
     ? mediaRecorderVideoOptions
@@ -99,12 +113,35 @@ export function ExportDialog() {
     () => findRecorderMime(settings.container, settings.videoCodec, settings.audioCodec),
     [settings.container, settings.videoCodec, settings.audioCodec],
   );
+  useEffect(() => {
+    if (settings.engine !== "mediarecorder") return;
+    if (!supportedContainers.includes(settings.container)) {
+      store.patch({ container: supportedContainers[0] ?? "webm", profileId: "custom" });
+      return;
+    }
+    const video = mediaRecorderVideoOptions.some((option) => option.value === settings.videoCodec)
+      ? settings.videoCodec
+      : mediaRecorderVideoOptions[0]?.value;
+    const audio = mediaRecorderAudioOptions.some((option) => option.value === settings.audioCodec)
+      ? settings.audioCodec
+      : mediaRecorderAudioOptions[0]?.value;
+    if (video && audio && !recorderSupports(settings.container, video, audio)) {
+      const compatibleVideo = mediaRecorderVideoOptions.find((option) =>
+        recorderSupports(settings.container, option.value, audio),
+      )?.value;
+      store.patch({ videoCodec: compatibleVideo ?? video, audioCodec: audio, profileId: "custom" });
+    } else if (video !== settings.videoCodec || audio !== settings.audioCodec) {
+      store.patch({ videoCodec: video, audioCodec: audio, profileId: "custom" });
+    }
+    // Options are derived from the browser's MediaRecorder support.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.container, settings.engine, settings.videoCodec, settings.audioCodec]);
   const engineNote =
     settings.engine === "mediarecorder"
       ? nativeMime
-  ? `Przeglądarka koduje natywnie: ${nativeMime}`
-  : null
-  : null;
+        ? `Przeglądarka koduje natywnie: ${nativeMime}`
+        : "Brak natywnej obsługi tej kombinacji — wybierz inną opcję."
+      : null;
 
 
   const estimated = estimateFileSize(settings, duration);
@@ -249,7 +286,7 @@ export function ExportDialog() {
         <div className="flex flex-col gap-3">
           <SectionHeader title="Profil eksportu" icon="bookmark" />
           <div className="flex flex-wrap gap-1.5">
-            {EXPORT_PROFILES.map((p) => (
+            {visibleProfiles.map((p) => (
               <Chip key={p.id} label={p.name} icon={p.icon} selected={settings.profileId === p.id} onClick={() => applyProfile(p.id)} />
             ))}
           </div>
@@ -262,10 +299,9 @@ export function ExportDialog() {
             <Select
               label="Kontener"
               value={settings.container}
-              options={[
-                { value: "mp4", label: "MP4" },
-                { value: "webm", label: "WebM" },
-              ]}
+              options={(settings.engine === "mediarecorder" ? supportedContainers : (["mp4", "webm"] as ExportContainer[])).map(
+                (container) => ({ value: container, label: container === "mp4" ? "MP4" : "WebM" }),
+              )}
               onChange={(v) => {
                 const container = v as ExportContainer;
                 const nextVideoCodec =
