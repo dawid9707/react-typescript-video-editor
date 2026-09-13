@@ -1,0 +1,6 @@
+{
+  "name": "Material Video Studio",
+  "description": "Profesjonalny webowy edytor wideo w stylu Material Design z obsługą Google Drive i wielu formatów eksportu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

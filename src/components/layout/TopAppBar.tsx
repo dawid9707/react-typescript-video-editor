@@ -136,6 +136,7 @@ export function TopAppBar({
             { id: "new", label: "Nowy projekt", icon: "add_box", onSelect: onNewProject },
             { id: "open", label: "Otwórz projekt…", icon: "folder_open", onSelect: onOpenProjects },
             { id: "save", label: "Zapisz projekt", icon: "save", shortcut: "Ctrl+S", onSelect: onSave },
+            { id: "gdrive", label: "Google Drive…", icon: "cloud", onSelect: () => openDialog("googleDrive") },
             { id: "d1", label: "", divider: true },
             { id: "psettings", label: "Ustawienia projektu", icon: "aspect_ratio", onSelect: () => openDialog("projectSettings") },
             { id: "settings", label: "Ustawienia aplikacji", icon: "settings", onSelect: () => openDialog("settings") },

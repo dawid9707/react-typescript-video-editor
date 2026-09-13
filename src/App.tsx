@@ -7,6 +7,7 @@ import { Inspector } from "@/components/inspector/Inspector";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { ProjectSettingsDialog, SettingsDialog } from "@/components/settings/SettingsDialogs";
 import { ImportOverlay, MarkerDialog, ProjectsDialog, ShortcutsDialog, SnackbarHost } from "@/components/common/Overlays";
+import { GoogleDriveDialog } from "@/components/common/GoogleDriveDialog";
 import { BottomSheet, Icon } from "@/components/ui";
 import { useProjectStore } from "@/stores/projectStore";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -265,6 +266,7 @@ export default function App() {
       <SettingsDialog />
       <ProjectSettingsDialog />
       <ProjectsDialog onOpenProject={openProject} />
+      <GoogleDriveDialog />
       <ShortcutsDialog />
       <MarkerDialog />
       <ImportOverlay />
