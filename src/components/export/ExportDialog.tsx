@@ -102,7 +102,9 @@ export function ExportDialog() {
   const engineNote =
     settings.engine === "mediarecorder"
       ? nativeMime
-        ? `Przeglądarka koduje natywnie: ${nativeMime}`
+  ? `Przeglądarka koduje natywnie: ${nativeMime}`
+  : null;
+
 
   const estimated = estimateFileSize(settings, duration);
   const running = phase === "preparing" || phase === "rendering" || phase === "transcoding" || phase === "finalizing";
