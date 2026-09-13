@@ -8,6 +8,7 @@ export type DialogId =
   | "settings"
   | "projectSettings"
   | "projects"
+  | "googleDrive"
   | "shortcuts"
   | "marker"
   | "subtitleEditor"
