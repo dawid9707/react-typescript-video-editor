@@ -332,12 +332,7 @@ export function MediaLibrary() {
               description={
                 assets.length
                   ? "Zaimportuj pliki lub zmień kategorię."
-                  : "Przeciągnij tutaj pliki wideo, audio lub napisy albo kliknij Importuj multimedia."
-              }
-              action={
-                <Button icon="add" variant="outlined" onClick={pickFiles}>
-                  Importuj multimedia
-                </Button>
+                  : "Przeciągnij tutaj pliki wideo, audio lub napisy albo kliknij Importuj multimedia powyżej."
               }
             />
           ) : (

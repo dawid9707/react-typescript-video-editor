@@ -109,6 +109,7 @@ export function TopAppBar({
       <div className="flex items-center gap-0.5">
         <IconButton icon="undo" label="Cofnij (Ctrl+Z)" onClick={undo} disabled={!canUndo} />
         <IconButton icon="redo" label="Ponów (Ctrl+Shift+Z)" onClick={redo} disabled={!canRedo} />
+        <IconButton icon="cloud_upload" label="Zapisz do Google Drive" onClick={() => openDialog("googleDrive")} />
         <div className="mx-1 hidden h-6 w-px bg-outline-variant sm:block" />
         <IconButton
           icon="left_panel_open"
