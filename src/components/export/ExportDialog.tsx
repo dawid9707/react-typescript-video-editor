@@ -103,7 +103,7 @@ export function ExportDialog() {
     settings.engine === "mediarecorder"
       ? nativeMime
   ? `Przeglądarka koduje natywnie: ${nativeMime}`
-  : null;
+  : null
   : null;
 
 
