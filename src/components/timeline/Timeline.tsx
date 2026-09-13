@@ -173,6 +173,15 @@ export function Timeline() {
   const duration = projectDuration(project);
   const contentWidth = Math.max(duration + 12, 40) * pps + HEADER_WIDTH;
   const assetMap = useMemo(() => new Map(project.assets.map((a) => [a.id, a])), [project.assets]);
+  const clipsByTrack = useMemo(() => {
+    const grouped = new Map<string, Clip[]>();
+    for (const clip of project.clips) {
+      const clips = grouped.get(clip.trackId);
+      if (clips) clips.push(clip);
+      else grouped.set(clip.trackId, [clip]);
+    }
+    return grouped;
+  }, [project.clips]);
 
   usePlayheadRef((time, playing) => {
     const el = playheadRef.current;
@@ -316,6 +325,43 @@ export function Timeline() {
     if (id) select([id]);
     else notify({ text: "Nie można umieścić tego materiału na wybranej ścieżce.", tone: "error" });
   };
+
+  const onClipDoubleClick = useCallback(
+    (id: string) => {
+      select([id]);
+      useUiStore.getState().togglePanel("right", true);
+    },
+    [select],
+  );
+
+  const onClipContextMenu = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.preventDefault();
+      select([id]);
+      setMenu({ x: e.clientX, y: e.clientY, clipId: id });
+    },
+    [select],
+  );
+
+  const onDropEffect = useCallback(
+    (id: string, type: string) => {
+      addEffect(id, createEffect(type as EffectType));
+      notify("Dodano efekt do klipu.");
+    },
+    [addEffect, notify],
+  );
+
+  const onDropTransition = useCallback(
+    (id: string, type: string, side: "in" | "out") => {
+      setTransition(
+        id,
+        side,
+        type === "cut" ? undefined : { id: uid("tr"), type: type as TransitionType, duration: 0.8 },
+      );
+      notify(`Przejście ${side === "in" ? "wejściowe" : "wyjściowe"} dodane.`);
+    },
+    [notify, setTransition],
+  );
 
   const selection = selectedClipIds;
   const hasSelection = selection.length > 0;
@@ -496,9 +542,7 @@ export function Timeline() {
                       )}px)`,
                     }}
                   />
-                  {project.clips
-                    .filter((c) => c.trackId === track.id)
-                    .map((clip) => (
+                  {(clipsByTrack.get(track.id) ?? []).map((clip) => (
                       <div key={clip.id} data-clip>
                         <ClipView
                           clip={clip}
@@ -508,27 +552,10 @@ export function Timeline() {
                           selected={selection.includes(clip.id)}
                           locked={track.locked}
                           onPointerDown={onClipPointerDown}
-                          onDoubleClick={(id) => {
-                            select([id]);
-                            useUiStore.getState().togglePanel("right", true);
-                          }}
-                          onContextMenu={(e, id) => {
-                            e.preventDefault();
-                            select([id]);
-                            setMenu({ x: e.clientX, y: e.clientY, clipId: id });
-                          }}
-                          onDropEffect={(id, type) => {
-                            addEffect(id, createEffect(type as EffectType));
-                            notify("Dodano efekt do klipu.");
-                          }}
-                          onDropTransition={(id, type, side) => {
-                            setTransition(
-                              id,
-                              side,
-                              type === "cut" ? undefined : { id: uid("tr"), type: type as TransitionType, duration: 0.8 },
-                            );
-                            notify(`Przejście ${side === "in" ? "wejściowe" : "wyjściowe"} dodane.`);
-                          }}
+                          onDoubleClick={onClipDoubleClick}
+                          onContextMenu={onClipContextMenu}
+                          onDropEffect={onDropEffect}
+                          onDropTransition={onDropTransition}
                         />
                       </div>
                     ))}
