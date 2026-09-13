@@ -104,6 +104,7 @@ export function ExportDialog() {
       ? nativeMime
   ? `Przeglądarka koduje natywnie: ${nativeMime}`
   : null;
+  : null;
 
 
   const estimated = estimateFileSize(settings, duration);
