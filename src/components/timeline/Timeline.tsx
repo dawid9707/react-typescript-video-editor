@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AudioTrack, Clip, EffectType, Track, TransitionType } from "@/types";
 import { Icon, IconButton, Menu, Switch, Tooltip } from "@/components/ui";
 import { ClipView } from "@/components/timeline/ClipView";
@@ -12,7 +12,7 @@ import { createEffect } from "@/features/project/factory";
 import { formatTime, uid } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
-const HEADER_WIDTH = 156;
+const HEADER_WIDTH = 136;
 const RULER_HEIGHT = 34;
 
 interface DragState {
@@ -31,7 +31,17 @@ function rulerStep(pps: number): { major: number; minor: number } {
   return { major, minor: major / 5 };
 }
 
-function TrackHeader({ track, index }: { track: Track; index: number }) {
+const TrackHeader = memo(function TrackHeader({
+  track,
+  index,
+  onDragStart,
+  onDragEnd,
+}: {
+  track: Track;
+  index: number;
+  onDragStart: (e: React.DragEvent, trackId: string) => void;
+  onDragEnd: () => void;
+}) {
   const updateTrack = useProjectStore((s) => s.updateTrack);
   const removeTrack = useProjectStore((s) => s.removeTrack);
   const moveTrack = useProjectStore((s) => s.moveTrack);
@@ -41,6 +51,10 @@ function TrackHeader({ track, index }: { track: Track; index: number }) {
     <div
       className="sticky left-0 z-20 flex shrink-0 flex-col justify-center gap-1 border-b border-r border-outline-variant bg-surf px-2 py-1"
       style={{ width: HEADER_WIDTH, height: track.height }}
+      draggable
+      onDragStart={(e) => onDragStart(e, track.id)}
+      onDragEnd={onDragEnd}
+      title="Przeciągnij, aby zmienić kolejność ścieżki"
     >
       <div className="flex items-center gap-1">
         <Icon
@@ -131,7 +145,7 @@ function TrackHeader({ track, index }: { track: Track; index: number }) {
       )}
     </div>
   );
-}
+});
 
 export function Timeline() {
   const project = useProjectStore((s) => s.project);
@@ -150,6 +164,7 @@ export function Timeline() {
   const addTrack = useProjectStore((s) => s.addTrack);
   const addMarker = useProjectStore((s) => s.addMarker);
   const removeMarker = useProjectStore((s) => s.removeMarker);
+  const reorderTrack = useProjectStore((s) => s.reorderTrack);
 
   const pps = useUiStore((s) => s.pixelsPerSecond);
   const setPps = useUiStore((s) => s.setPixelsPerSecond);
@@ -169,6 +184,8 @@ export function Timeline() {
   const dragRef = useRef<DragState | null>(null);
   const [guide, setGuide] = useState<number | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; clipId: string } | null>(null);
+  const [draggedTrackId, setDraggedTrackId] = useState<string | null>(null);
+  const [dropTrackId, setDropTrackId] = useState<string | null>(null);
 
   const duration = projectDuration(project);
   const contentWidth = Math.max(duration + 12, 40) * pps + HEADER_WIDTH;
@@ -326,6 +343,29 @@ export function Timeline() {
     else notify({ text: "Nie można umieścić tego materiału na wybranej ścieżce.", tone: "error" });
   };
 
+  const onTrackDragStart = useCallback((e: React.DragEvent, trackId: string) => {
+    e.dataTransfer.setData("application/x-mvs-track", trackId);
+    e.dataTransfer.effectAllowed = "move";
+    setDraggedTrackId(trackId);
+  }, []);
+
+  const onTrackDragEnd = useCallback(() => {
+    setDraggedTrackId(null);
+    setDropTrackId(null);
+  }, []);
+
+  const onTrackDrop = useCallback(
+    (e: React.DragEvent, targetTrackId: string) => {
+      const trackId = e.dataTransfer.getData("application/x-mvs-track");
+      if (!trackId || trackId === targetTrackId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      reorderTrack(trackId, targetTrackId);
+      onTrackDragEnd();
+    },
+    [onTrackDragEnd, reorderTrack],
+  );
+
   const onClipDoubleClick = useCallback(
     (id: string) => {
       select([id]);
@@ -377,7 +417,7 @@ export function Timeline() {
   return (
     <section aria-label="Oś czasu" className="flex min-h-0 flex-1 flex-col bg-surf-low">
       {/* toolbar */}
-      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-outline-variant px-2 py-1.5">
+      <div className="no-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto overscroll-contain border-b border-outline-variant px-2 py-1.5">
         <div className="flex items-center gap-0.5 rounded-full bg-surf p-0.5">
           <IconButton icon="arrow_selector_tool" label="Narzędzie zaznaczania (V)" size={32} selected={tool === "select"} onClick={() => setTool("select")} />
           <IconButton icon="content_cut" label="Żyletka (C)" size={32} selected={tool === "razor"} onClick={() => setTool("razor")} />
@@ -510,8 +550,21 @@ export function Timeline() {
           {/* tracks */}
           <div className="relative">
             {project.tracks.map((track, index) => (
-              <div key={track.id} className="flex" style={{ height: track.height }}>
-                <TrackHeader track={track} index={index} />
+              <div
+                key={track.id}
+                className={cn("flex transition-colors", dropTrackId === track.id && draggedTrackId !== track.id && "bg-primary/15")}
+                style={{ height: track.height }}
+                onDragOver={(e) => {
+                  if (e.dataTransfer.types.includes("application/x-mvs-track")) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    setDropTrackId(track.id);
+                  }
+                }}
+                onDragLeave={() => setDropTrackId((id) => (id === track.id ? null : id))}
+                onDrop={(e) => onTrackDrop(e, track.id)}
+              >
+                <TrackHeader track={track} index={index} onDragStart={onTrackDragStart} onDragEnd={onTrackDragEnd} />
                 <div
                   data-track-id={track.id}
                   className={cn(

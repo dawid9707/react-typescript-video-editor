@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { AudioClip, BlendMode, Clip, SubtitleClip, TextClip, VideoClip } from "@/types";
 import {
   Button,
@@ -35,6 +35,35 @@ const BLEND_MODES: BlendMode[] = [
 ];
 
 const SPEED_PRESETS = [0.25, 0.5, 1, 1.5, 2, 4];
+
+function InspectorSection({
+  title,
+  icon,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  icon?: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="border-b border-outline-variant/60 pb-1 last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="state-layer flex min-h-9 w-full items-center gap-2 rounded-[8px] px-1 py-2 text-left"
+      >
+        {icon && <Icon name={icon} size={16} className="text-on-surface-variant" />}
+        <span className="flex-1 text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">{title}</span>
+        <Icon name={open ? "expand_less" : "expand_more"} size={18} className="text-on-surface-variant" />
+      </button>
+      {open && <div className="pb-1">{children}</div>}
+    </section>
+  );
+}
 
 function ColorInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
@@ -274,14 +303,14 @@ function VideoInspector({ clip }: { clip: VideoClip }) {
 
         {tab === "color" && (
           <>
-            <SectionHeader title="Korekcja obrazu" icon="tune" />
-            <ParamRow label="Ekspozycja" value={clip.color.exposure} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, exposure: v } } as Partial<Clip>)} />
-            <ParamRow label="Kontrast" value={clip.color.contrast} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, contrast: v } } as Partial<Clip>)} />
-            <ParamRow label="Nasycenie" value={clip.color.saturation} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, saturation: v } } as Partial<Clip>)} />
-            <ParamRow label="Temperatura" value={clip.color.temperature} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, temperature: v } } as Partial<Clip>)} />
-            <ParamRow label="Tinta" value={clip.color.tint} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, tint: v } } as Partial<Clip>)} />
-            <ParamRow label="Światła" value={clip.color.highlights} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, highlights: v } } as Partial<Clip>)} />
-            <ParamRow label="Cienie" value={clip.color.shadows} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, shadows: v } } as Partial<Clip>)} />
+            <InspectorSection title="Korekcja obrazu" icon="tune">
+              <ParamRow label="Ekspozycja" value={clip.color.exposure} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, exposure: v } } as Partial<Clip>)} />
+              <ParamRow label="Kontrast" value={clip.color.contrast} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, contrast: v } } as Partial<Clip>)} />
+              <ParamRow label="Nasycenie" value={clip.color.saturation} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, saturation: v } } as Partial<Clip>)} />
+              <ParamRow label="Temperatura" value={clip.color.temperature} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, temperature: v } } as Partial<Clip>)} />
+              <ParamRow label="Tinta" value={clip.color.tint} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, tint: v } } as Partial<Clip>)} />
+              <ParamRow label="Światła" value={clip.color.highlights} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, highlights: v } } as Partial<Clip>)} />
+              <ParamRow label="Cienie" value={clip.color.shadows} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { color: { ...clip.color, shadows: v } } as Partial<Clip>)} />
             <Button
               variant="outlined"
               icon="restart_alt"
@@ -293,7 +322,8 @@ function VideoInspector({ clip }: { clip: VideoClip }) {
               }
             >
               Resetuj korekcję
-            </Button>
+              </Button>
+            </InspectorSection>
           </>
         )}
 
@@ -332,34 +362,38 @@ function AudioInspector({ clip }: { clip: AudioClip }) {
   const setSpeed = useProjectStore((s) => s.setClipSpeed);
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6">
-      <SectionHeader title="Poziomy" icon="volume_up" />
-      <ParamRow label="Głośność" value={clip.volume} min={0} max={2} step={0.01} defaultValue={1} onChange={(v) => update(clip.id, { volume: v } as Partial<Clip>)} />
-      <ParamRow label="Gain" value={clip.gain} min={0} max={3} step={0.01} defaultValue={1} onChange={(v) => update(clip.id, { gain: v } as Partial<Clip>)} />
-      <ParamRow label="Panorama" value={clip.pan} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { pan: v } as Partial<Clip>)} />
-      <SectionHeader title="Poprawa dźwięku" icon="auto_awesome" />
-      <ParamRow label="Usuwanie szumu" value={clip.noiseReduction ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { noiseReduction: v } as Partial<Clip>)} />
-      <ParamRow label="Czytelność głosu" value={clip.voiceEnhance ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { voiceEnhance: v } as Partial<Clip>)} />
-      <ParamRow label="Kompresja" value={clip.compressor ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { compressor: v } as Partial<Clip>)} />
+      <InspectorSection title="Poziomy" icon="volume_up">
+        <ParamRow label="Głośność" value={clip.volume} min={0} max={2} step={0.01} defaultValue={1} onChange={(v) => update(clip.id, { volume: v } as Partial<Clip>)} />
+        <ParamRow label="Gain" value={clip.gain} min={0} max={3} step={0.01} defaultValue={1} onChange={(v) => update(clip.id, { gain: v } as Partial<Clip>)} />
+        <ParamRow label="Panorama" value={clip.pan} min={-1} max={1} step={0.01} onChange={(v) => update(clip.id, { pan: v } as Partial<Clip>)} />
+      </InspectorSection>
+      <InspectorSection title="Poprawa dźwięku" icon="auto_awesome">
+        <ParamRow label="Usuwanie szumu" value={clip.noiseReduction ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { noiseReduction: v } as Partial<Clip>)} />
+        <ParamRow label="Czytelność głosu" value={clip.voiceEnhance ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { voiceEnhance: v } as Partial<Clip>)} />
+        <ParamRow label="Kompresja" value={clip.compressor ?? 0} min={0} max={1} step={0.01} defaultValue={0} onChange={(v) => update(clip.id, { compressor: v } as Partial<Clip>)} />
+      </InspectorSection>
       <label className="flex items-center justify-between py-1.5">
         <span className="text-[12px] text-on-surface-variant">Wycisz fragment</span>
         <Switch checked={clip.muted} onChange={(v) => update(clip.id, { muted: v } as Partial<Clip>)} label="Wycisz" />
       </label>
 
-      <SectionHeader title="Obwiednia" icon="show_chart" />
-      <ParamRow label="Fade in" unit="s" value={clip.fadeIn} min={0} max={Math.min(8, clip.duration / 2)} step={0.05} onChange={(v) => update(clip.id, { fadeIn: v } as Partial<Clip>)} />
-      <ParamRow label="Fade out" unit="s" value={clip.fadeOut} min={0} max={Math.min(8, clip.duration / 2)} step={0.05} onChange={(v) => update(clip.id, { fadeOut: v } as Partial<Clip>)} />
+      <InspectorSection title="Obwiednia" icon="show_chart">
+        <ParamRow label="Fade in" unit="s" value={clip.fadeIn} min={0} max={Math.min(8, clip.duration / 2)} step={0.05} onChange={(v) => update(clip.id, { fadeIn: v } as Partial<Clip>)} />
+        <ParamRow label="Fade out" unit="s" value={clip.fadeOut} min={0} max={Math.min(8, clip.duration / 2)} step={0.05} onChange={(v) => update(clip.id, { fadeOut: v } as Partial<Clip>)} />
+      </InspectorSection>
 
-      <SectionHeader title="Czas" icon="speed" />
-      <div className="flex flex-wrap gap-1.5 py-1">
+      <InspectorSection title="Czas" icon="speed">
+        <div className="flex flex-wrap gap-1.5 py-1">
         {SPEED_PRESETS.map((s) => (
           <Chip key={s} label={`${s}×`} selected={Math.abs(clip.speed - s) < 0.001} onClick={() => setSpeed(clip.id, s)} />
         ))}
-      </div>
-      <ParamRow label="Prędkość" unit="×" value={clip.speed} min={0.1} max={8} step={0.05} defaultValue={1} onChange={(v) => setSpeed(clip.id, v)} />
-      <label className="flex items-center justify-between py-1.5">
+        </div>
+        <ParamRow label="Prędkość" unit="×" value={clip.speed} min={0.1} max={8} step={0.05} defaultValue={1} onChange={(v) => setSpeed(clip.id, v)} />
+        <label className="flex items-center justify-between py-1.5">
         <span className="text-[12px] text-on-surface-variant">Odtwarzanie wstecz</span>
         <Switch checked={clip.reverse} onChange={(v) => update(clip.id, { reverse: v } as Partial<Clip>)} label="Odwróć" />
-      </label>
+        </label>
+      </InspectorSection>
     </div>
   );
 }
@@ -372,17 +406,18 @@ function TextInspector({ clip }: { clip: TextClip | SubtitleClip }) {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6">
-      <SectionHeader title="Treść" icon="text_fields" />
-      <textarea
+      <InspectorSection title="Treść" icon="text_fields">
+        <textarea
         value={clip.text}
         onChange={(e) => update(clip.id, { text: e.target.value, label: e.target.value.slice(0, 24) } as Partial<Clip>)}
         rows={3}
         aria-label="Treść tekstu"
         className="w-full resize-y rounded-[10px] bg-surf-high p-2.5 text-[13px] text-on-surface outline-none focus:ring-2 focus:ring-primary"
-      />
+        />
+      </InspectorSection>
 
-      <SectionHeader title="Typografia" icon="format_size" />
-      <Select
+      <InspectorSection title="Typografia" icon="format_size">
+        <Select
         label="Krój"
         value={style.fontFamily}
         options={[
@@ -409,9 +444,9 @@ function TextInspector({ clip }: { clip: TextClip | SubtitleClip }) {
         ]}
         onChange={(v) => patchStyle({ fontFamily: v })}
         className="py-1"
-      />
-      <ParamRow label="Rozmiar" unit="px" value={style.fontSize} min={12} max={220} step={1} precision={0} defaultValue={72} onChange={(v) => patchStyle({ fontSize: v })} />
-      <div className="flex items-center gap-2 py-1">
+        />
+        <ParamRow label="Rozmiar" unit="px" value={style.fontSize} min={12} max={220} step={1} precision={0} defaultValue={72} onChange={(v) => patchStyle({ fontSize: v })} />
+        <div className="flex items-center gap-2 py-1">
         <IconButton icon="format_bold" label="Pogrubienie" selected={style.bold} onClick={() => patchStyle({ bold: !style.bold })} size={34} />
         <IconButton icon="format_italic" label="Kursywa" selected={style.italic} onClick={() => patchStyle({ italic: !style.italic })} size={34} />
         <SegmentedButtons
@@ -425,11 +460,12 @@ function TextInspector({ clip }: { clip: TextClip | SubtitleClip }) {
             { value: "right", label: "", icon: "format_align_right" },
           ]}
         />
-      </div>
-      <ParamRow label="Interlinia" value={style.lineHeight} min={0.8} max={2.5} step={0.05} defaultValue={1.2} onChange={(v) => patchStyle({ lineHeight: v })} />
+        </div>
+        <ParamRow label="Interlinia" value={style.lineHeight} min={0.8} max={2.5} step={0.05} defaultValue={1.2} onChange={(v) => patchStyle({ lineHeight: v })} />
+      </InspectorSection>
 
-      <SectionHeader title="Kolory" icon="palette" />
-      <ColorInput label="Kolor tekstu" value={style.color} onChange={(v) => patchStyle({ color: v })} />
+      <InspectorSection title="Kolory" icon="palette">
+        <ColorInput label="Kolor tekstu" value={style.color} onChange={(v) => patchStyle({ color: v })} />
       <ParamRow label="Krycie" value={style.opacity} min={0} max={1} step={0.01} defaultValue={1} onChange={(v) => patchStyle({ opacity: v })} />
       
       <label className="flex items-center justify-between py-1.5 mt-2">
@@ -458,11 +494,12 @@ function TextInspector({ clip }: { clip: TextClip | SubtitleClip }) {
         <span className="text-[12px] text-on-surface-variant font-medium">Cień</span>
         <Switch checked={style.shadow} onChange={(v) => patchStyle({ shadow: v })} label="Cień" />
       </label>
-      {style.shadow && (
+        {style.shadow && (
         <div className="pl-2 border-l border-surface-variant/30 ml-1 mb-2">
           <ParamRow label="Rozmycie cienia" unit="px" value={style.shadowBlur} min={0} max={60} step={1} precision={0} defaultValue={18} onChange={(v) => patchStyle({ shadowBlur: v })} />
         </div>
-      )}
+        )}
+      </InspectorSection>
 
       {isSubtitle ? (
         <>

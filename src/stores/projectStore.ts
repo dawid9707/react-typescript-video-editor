@@ -60,6 +60,7 @@ interface ProjectState {
   removeTrack: (trackId: string) => void;
   updateTrack: (trackId: string, patch: Partial<AudioTrack> & Partial<Track>) => void;
   moveTrack: (trackId: string, dir: -1 | 1) => void;
+  reorderTrack: (trackId: string, targetTrackId: string) => void;
 
   addAssetToTimeline: (assetId: string, trackId?: string, start?: number) => string | null;
   addTextClip: (trackId: string | undefined, start: number, text?: string) => string | null;
@@ -235,6 +236,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       [tracks[idx], tracks[target]] = [tracks[target], tracks[idx]];
       return { ...p, tracks };
     }),
+
+  reorderTrack: (trackId, targetTrackId) =>
+    get().apply((p) => {
+      if (trackId === targetTrackId) return p;
+      const from = p.tracks.findIndex((t) => t.id === trackId);
+      const target = p.tracks.findIndex((t) => t.id === targetTrackId);
+      if (from < 0 || target < 0) return p;
+      const tracks = [...p.tracks];
+      const [moved] = tracks.splice(from, 1);
+      tracks.splice(target, 0, moved);
+      return { ...p, tracks };
+    }, true, { key: `reorder-track:${trackId}` }),
 
   addAssetToTimeline: (assetId, trackId, start) => {
     const project = get().project;
@@ -442,6 +455,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         fadeIn: clip.fadeIn,
         fadeOut: clip.fadeOut,
         reverse: clip.reverse,
+        noiseReduction: clip.noiseReduction ?? 0,
+        voiceEnhance: clip.voiceEnhance ?? 0,
+        compressor: clip.compressor ?? 0,
       };
       return withClips(p, [
         ...p.clips.map((c) => (c.id === clipId ? ({ ...c, muted: true } as Clip) : c)),
