@@ -26,6 +26,18 @@ function sanitize(name: string): string {
   return name.replace(/[^\p{L}\p{N}\-_ ]/gu, "").trim() || "eksport";
 }
 
+async function repairWebmDuration(blob: Blob, onProgress: () => void): Promise<Blob> {
+  onProgress();
+  try {
+    const repaired = await fixWebmDuration(blob);
+    if (!repaired.size) throw new Error("Naprawiony plik WebM jest pusty.");
+    return repaired;
+  } catch (err) {
+    console.warn("Nie udało się naprawić czasu trwania WebM:", err);
+    return blob;
+  }
+}
+
 /**
  * Renders the timeline into a canvas in real time and captures it with
  * MediaRecorder (hardware accelerated in every modern browser).
@@ -138,15 +150,13 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
     }
     let blob = await recordTimeline(req, mime);
     if (settings.container === "webm" || mime.includes("webm")) {
-      try {
-        req.onProgress("preparing", 0.95, "Naprawianie metadanych WebM…");
-        blob = await fixWebmDuration(blob);
-      } catch (err) {
-        console.warn("Nie udało się naprawić czasu trwania WebM:", err);
-      }
+      blob = await repairWebmDuration(blob, () =>
+        req.onProgress("preparing", 0.95, "Naprawianie metadanych WebM…"),
+      );
     }
     req.onProgress("finalizing", 0.98, "Finalizowanie pliku…");
-    const format = exportFormat(settings.container);
+    const actualContainer = mime.includes("mp4") ? "mp4" : "webm";
+    const format = exportFormat(actualContainer);
     return { blob, fileName: `${sanitize(project.name)}.${format.extension}`, mime, durationSec: duration };
   }
 
@@ -168,12 +178,9 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
     onProgress: (ratio, message) => req.onProgress("transcoding", ratio, message),
   });
   if (format.extension === "webm") {
-    try {
-      req.onProgress("finalizing", 0.95, "Naprawianie metadanych WebM…");
-      blob = await fixWebmDuration(blob);
-    } catch (err) {
-      console.warn("Nie udało się naprawić czasu trwania transkodowanego WebM:", err);
-    }
+    blob = await repairWebmDuration(blob, () =>
+      req.onProgress("finalizing", 0.95, "Naprawianie metadanych WebM…"),
+    );
   }
   req.onProgress("finalizing", 0.98, "Finalizowanie pliku…");
   return {
