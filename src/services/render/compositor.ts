@@ -109,6 +109,10 @@ export function gradeToFilter(color: ColorGrade, effects: Effect[]): string {
       case "invert":
         parts.push(`invert(${clamp(p.amount, 0, 1).toFixed(3)})`);
         break;
+      case "enhance":
+        parts.push(`contrast(${(1 + clamp(p.amount ?? 0.45, 0, 1) * 0.18).toFixed(3)})`);
+        parts.push(`saturate(${(1 + clamp(p.amount ?? 0.45, 0, 1) * 0.12).toFixed(3)})`);
+        break;
       case "shadow":
         parts.push(
           `drop-shadow(${(p.x ?? 0).toFixed(0)}px ${(p.y ?? 8).toFixed(0)}px ${(p.blur ?? 12).toFixed(0)}px ${
@@ -365,6 +369,15 @@ function drawPostEffects(
       ctx.fillStyle = "#000000";
       ctx.fillRect(rect.x, rect.y, rect.w, barH);
       ctx.fillRect(rect.x, rect.y + rect.h - barH, rect.w, barH);
+      ctx.restore();
+    }
+    if (fx.type === "enhance" && source && (p.detail ?? 0) > 0 && ctx.filter === "none") {
+      const detail = clamp(p.detail, 0, 1);
+      ctx.save();
+      ctx.globalCompositeOperation = "overlay";
+      ctx.globalAlpha = detail * 0.25;
+      ctx.filter = `blur(${Math.max(0.4, 1.8 - detail).toFixed(2)}px) invert(1)`;
+      ctx.drawImage(source, rect.x, rect.y, rect.w, rect.h);
       ctx.restore();
     }
   }
@@ -624,6 +637,11 @@ function drawVideoClip(o: RenderOptions, clip: VideoClip): void {
 
   const dst = fitRect(cropW, cropH, width, height);
   const sharpenFx = clip.effects.find((e) => e.enabled && e.type === "sharpen");
+  const stabilizeFx = clip.effects.find((e) => e.enabled && e.type === "stabilize");
+  const stabilizeCrop = stabilizeFx ? clamp(stabilizeFx.params.crop ?? 0.08, 0, 0.25) : 0;
+  const stabilizedDst = stabilizeCrop > 0
+    ? { x: dst.x - dst.w * stabilizeCrop, y: dst.y - dst.h * stabilizeCrop, w: dst.w * (1 + stabilizeCrop * 2), h: dst.h * (1 + stabilizeCrop * 2) }
+    : dst;
 
   ctx.save();
   ctx.globalAlpha = clamp(alpha, 0, 1);
@@ -639,9 +657,9 @@ function drawVideoClip(o: RenderOptions, clip: VideoClip): void {
     tctx.clearRect(0, 0, sw, sh);
     tctx.drawImage(source, cropX, cropY, cropW, cropH, 0, 0, sw, sh);
     painted = applySharpen(tmp, sw, sh, sharpenFx.params.amount ?? 0.5, sharpenFx.params.radius ?? 1.2);
-    ctx.drawImage(painted, 0, 0, sw, sh, dst.x, dst.y, dst.w, dst.h);
+    ctx.drawImage(painted, 0, 0, sw, sh, stabilizedDst.x, stabilizedDst.y, stabilizedDst.w, stabilizedDst.h);
   } else {
-    ctx.drawImage(source, cropX, cropY, cropW, cropH, dst.x, dst.y, dst.w, dst.h);
+    ctx.drawImage(source, cropX, cropY, cropW, cropH, stabilizedDst.x, stabilizedDst.y, stabilizedDst.w, stabilizedDst.h);
   }
   ctx.filter = "none";
   drawColorOverlays(ctx, dst, clip.color);

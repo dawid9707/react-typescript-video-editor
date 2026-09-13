@@ -123,6 +123,8 @@ export type EffectType =
   | "pixelate"
   | "scanlines"
   | "cinema";
+  | "enhance"
+  | "stabilize";
 
 export interface Effect {
   id: string;
@@ -224,6 +226,9 @@ export interface VideoClip extends ClipBase {
   muted: boolean;
   fadeIn: number;
   fadeOut: number;
+  noiseReduction: number;
+  voiceEnhance: number;
+  compressor: number;
 }
 
 export interface AudioClip extends ClipBase {
@@ -239,6 +244,9 @@ export interface AudioClip extends ClipBase {
   fadeIn: number;
   fadeOut: number;
   reverse: boolean;
+  noiseReduction: number;
+  voiceEnhance: number;
+  compressor: number;
 }
 
 export interface TextStyle {
