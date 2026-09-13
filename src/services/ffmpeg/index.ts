@@ -174,7 +174,6 @@ export class WasmFFmpeg implements FFmpegEngine {
       const mod = (await import(/* @vite-ignore */ ESM_URL)) as {
         FFmpeg: new () => FFmpegInstance;
       };
-<<<<<<< HEAD
       const classWorkerURL = await toBlobURL(
         `https://unpkg.com/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/worker.js`,
         "text/javascript",
@@ -184,13 +183,6 @@ export class WasmFFmpeg implements FFmpegEngine {
       const coreLabel = threaded ? "wielowątkowego rdzenia FFmpeg" : "rdzenia FFmpeg";
       const coreURL = await toBlobURL(`${coreBase}/ffmpeg-core.js`, "text/javascript", (r) =>
         onProgress?.(0.05 + r * 0.15, `Pobieranie ${coreLabel}…`),
-=======
-      const coreURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript", (r) =>
-        onProgress?.(0.1 + r * 0.3, "Pobieranie rdzenia FFmpeg…"),
-      );
-      const wasmURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm", (r) =>
-        onProgress?.(0.4 + r * 0.4, "Pobieranie ffmpeg-core.wasm…"),
->>>>>>> origin/main
       );
       const wasmURL = await toBlobURL(`${coreBase}/ffmpeg-core.wasm`, "application/wasm", (r) =>
         onProgress?.(0.2 + r * 0.6, `Pobieranie ${coreLabel}.wasm…`),
@@ -207,7 +199,6 @@ export class WasmFFmpeg implements FFmpegEngine {
         const ratio = this.durationHint > 0 ? Math.min(1, p.time / 1_000_000 / this.durationHint) : p.progress;
         if (isFinite(ratio) && ratio >= 0) this.progressCb?.(Math.min(0.999, ratio), "Transkodowanie FFmpeg…");
       });
-<<<<<<< HEAD
       onProgress?.(0.85, "Inicjalizacja rdzenia…");
       await withTimeout(
         ff.load({
@@ -219,10 +210,6 @@ export class WasmFFmpeg implements FFmpegEngine {
         45_000,
         "Inicjalizacja FFmpeg przekroczyła 45 sekund. Sprawdź worker i nagłówki COOP/COEP.",
       );
-=======
-      onProgress?.(0.85, "Inicjalizacja rdzenia FFmpeg…");
-      await ff.load({ coreURL, wasmURL });
->>>>>>> origin/main
       this.instance = ff;
       onProgress?.(1, "FFmpeg gotowy");
     })();

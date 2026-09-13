@@ -231,46 +231,16 @@ function drawPostEffects(
         ctx.restore();
       }
     }
-<<<<<<< HEAD
-    if (fx.type === "vhs" && (p.shift ?? p.amount ?? 0) > 0 && source) {
-      const shiftAmt = p.shift ?? p.amount ?? 0.4;
-      const noiseAmt = p.noise ?? 0.3;
-      const degradeAmt = p.degrade ?? 0.5;
-      const shift = Math.max(1, shiftAmt * 12);
-=======
     if (fx.type === "vhs" && source) {
       const bleed = p.bleed ?? 0.5;
       const head = p.head ?? 0.3;
       const tracking = p.tracking ?? 0.2;
       const jitter = p.jitter ?? 0.1;
       const degradeAmt = p.degrade ?? 0.5;
-
->>>>>>> origin/main
       const sW = (source as any).videoWidth || (source as any).naturalWidth || source.width;
       const sH = (source as any).videoHeight || (source as any).naturalHeight || source.height;
       if (sW && sH) {
         ctx.save();
-<<<<<<< HEAD
-        ctx.globalCompositeOperation = "screen";
-        ctx.globalAlpha = clamp(shiftAmt, 0, 1) * 0.6;
-        const sat = 1 + (1 - degradeAmt) * 3;
-        ctx.filter = `sepia(${degradeAmt}) hue-rotate(-50deg) saturate(${sat}) brightness(${1 - degradeAmt * 0.2})`;
-        ctx.drawImage(source, 0, 0, sW, sH, rect.x - shift, rect.y, rect.w, rect.h);
-        ctx.filter = `sepia(${degradeAmt}) hue-rotate(150deg) saturate(${sat}) brightness(${1 - degradeAmt * 0.2})`;
-        ctx.drawImage(source, 0, 0, sW, sH, rect.x + shift, rect.y, rect.w, rect.h);
-        ctx.restore();
-
-        if (noiseAmt > 0) {
-          ctx.save();
-          const noiseY = (time * 150) % rect.h;
-          ctx.fillStyle = `rgba(255, 255, 255, ${noiseAmt * 0.5})`;
-          ctx.globalCompositeOperation = "overlay";
-          ctx.fillRect(rect.x, rect.y + noiseY, rect.w, 4 + Math.random() * 8);
-          ctx.fillRect(rect.x, rect.y + noiseY + 15, rect.w, 2 + Math.random() * 4);
-          ctx.restore();
-        }
-=======
-        
         // Jitter (horizontal shake)
         const frameT = Math.floor(time * 30);
         const jitterShift = jitter > 0 ? (Math.random() - 0.5) * jitter * 20 : 0;
@@ -336,7 +306,6 @@ function drawPostEffects(
         }
         
         ctx.restore();
->>>>>>> origin/main
       }
     }
     if (fx.type === "glitch" && (p.amount ?? 0) > 0 && source) {

@@ -1,12 +1,7 @@
 import type { ExportPhase, ExportSettings, MediaAsset, Project } from "@/types";
 import { playbackEngine } from "@/services/playback/engine";
-<<<<<<< HEAD
 import { bestIntermediateMime, capabilities, exportFormat, findRecorderMime } from "@/services/export/capabilities";
 import { BackendFFmpeg, getWasmFFmpeg, type FFmpegEngine } from "@/services/ffmpeg";
-=======
-import { bestIntermediateMime, capabilities, findRecorderMime } from "@/services/export/capabilities";
-import { BackendFFmpeg, type FFmpegEngine } from "@/services/ffmpeg";
->>>>>>> origin/main
 import { projectDuration } from "@/features/timeline/selectors";
 import { downloadBlob } from "@/utils/format";
 import fixWebmDuration from "webm-duration-fix";
@@ -142,7 +137,7 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
       mime = bestIntermediateMime() || 'video/webm;codecs="vp8,opus"';
     }
     let blob = await recordTimeline(req, mime);
-    if (extFor(mime, settings.container) === "webm" || mime.includes("webm")) {
+    if (settings.container === "webm" || mime.includes("webm")) {
       try {
         req.onProgress("preparing", 0.95, "Naprawianie metadanych WebM…");
         blob = await fixWebmDuration(blob);
@@ -163,13 +158,8 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
 
   req.onProgress("transcoding", 0.02, `Inicjalizacja: ${engine.name}…`);
   const inExt = intermediate.includes("mp4") ? "mp4" : "webm";
-<<<<<<< HEAD
   const format = exportFormat(settings.container);
-  const blob = await engine.transcode({
-=======
-  const outExt = settings.container === "mp4" ? "mp4" : "webm";
   let blob = await engine.transcode({
->>>>>>> origin/main
     input: raw,
     inputName: `input.${inExt}`,
     outputName: `output.${format.extension}`,
@@ -177,7 +167,7 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
     signal: req.signal,
     onProgress: (ratio, message) => req.onProgress("transcoding", ratio, message),
   });
-  if (outExt === "webm") {
+  if (format.extension === "webm") {
     try {
       req.onProgress("finalizing", 0.95, "Naprawianie metadanych WebM…");
       blob = await fixWebmDuration(blob);
