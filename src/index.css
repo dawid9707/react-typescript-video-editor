@@ -279,6 +279,25 @@ input[type="range"].md-slider::-moz-range-track {
   user-select: none;
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .checkerboard {
   background-image: linear-gradient(45deg, #2a2a2e 25%, transparent 25%),
     linear-gradient(-45deg, #2a2a2e 25%, transparent 25%),

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AudioTrack, Clip, EffectType, Track, TransitionType } from "@/types";
 import { Icon, IconButton, Menu, Switch, Tooltip } from "@/components/ui";
 import { ClipView } from "@/components/timeline/ClipView";
@@ -12,7 +12,7 @@ import { createEffect } from "@/features/project/factory";
 import { formatTime, uid } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
-const HEADER_WIDTH = 156;
+const HEADER_WIDTH = 136;
 const RULER_HEIGHT = 34;
 
 interface DragState {
@@ -31,7 +31,7 @@ function rulerStep(pps: number): { major: number; minor: number } {
   return { major, minor: major / 5 };
 }
 
-function TrackHeader({
+const TrackHeader = memo(function TrackHeader({
   track,
   index,
   onDragStart,
@@ -145,7 +145,7 @@ function TrackHeader({
       )}
     </div>
   );
-}
+});
 
 export function Timeline() {
   const project = useProjectStore((s) => s.project);
@@ -417,7 +417,7 @@ export function Timeline() {
   return (
     <section aria-label="Oś czasu" className="flex min-h-0 flex-1 flex-col bg-surf-low">
       {/* toolbar */}
-      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-outline-variant px-2 py-1.5">
+      <div className="no-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto overscroll-contain border-b border-outline-variant px-2 py-1.5">
         <div className="flex items-center gap-0.5 rounded-full bg-surf p-0.5">
           <IconButton icon="arrow_selector_tool" label="Narzędzie zaznaczania (V)" size={32} selected={tool === "select"} onClick={() => setTool("select")} />
           <IconButton icon="content_cut" label="Żyletka (C)" size={32} selected={tool === "razor"} onClick={() => setTool("razor")} />
