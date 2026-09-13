@@ -1,5 +1,5 @@
 import { useMemo, useState, type DragEvent } from "react";
-import type { EffectType, MediaAsset, TransitionType } from "@/types";
+import type { EffectType, MediaAsset, ShapeType, TransitionType } from "@/types";
 import {
   Button,
   Chip,
@@ -26,6 +26,7 @@ const TABS: { value: LibraryTab; label: string; icon: string }[] = [
   { value: "effects", label: "Efekty", icon: "auto_fix_high" },
   { value: "transitions", label: "Przejścia", icon: "transition_fade" },
   { value: "text", label: "Tekst", icon: "title" },
+  { value: "shapes", label: "Kształty", icon: "shapes" },
 ];
 
 const TRANSITIONS: { type: TransitionType; label: string; icon: string }[] = [
@@ -44,6 +45,13 @@ const TEXT_PRESETS = [
   { id: "subtitle", label: "Podtytuł", text: "Podtytuł", size: 56, icon: "text_fields" },
   { id: "lower", label: "Belka dolna", text: "Imię Nazwisko\nOpis", size: 44, icon: "branding_watermark" },
   { id: "caption", label: "Podpis", text: "Podpis", size: 36, icon: "closed_caption" },
+];
+
+const SHAPES: { type: ShapeType; label: string; icon: string; detail: string }[] = [
+  { type: "rectangle", label: "Prostokąt", icon: "rectangle", detail: "Wypełniony" },
+  { type: "ellipse", label: "Elipsa", icon: "circle", detail: "Wypełniona" },
+  { type: "line", label: "Linia", icon: "horizontal_rule", detail: "Kontur" },
+  { type: "arrow", label: "Strzałka", icon: "arrow_forward", detail: "Kontur" },
 ];
 
 function assetDuration(a: MediaAsset): number {
@@ -179,6 +187,7 @@ export function MediaLibrary() {
   const removeAsset = useProjectStore((s) => s.removeAsset);
   const addAssetToTimeline = useProjectStore((s) => s.addAssetToTimeline);
   const addTextClip = useProjectStore((s) => s.addTextClip);
+  const addShapeClip = useProjectStore((s) => s.addShapeClip);
   const addEffect = useProjectStore((s) => s.addEffect);
   const setTransition = useProjectStore((s) => s.setTransition);
   const addSubtitleCues = useProjectStore((s) => s.addSubtitleCues);
@@ -447,6 +456,30 @@ export function MediaLibrary() {
               Warstwa tekstowa trafia na najwyższą ścieżkę wideo i może być dowolnie przesuwana oraz stylowana
               w inspektorze.
             </p>
+          </div>
+        )}
+
+        {tab === "shapes" && (
+          <div className="grid grid-cols-2 gap-2 pt-3">
+            {SHAPES.map((shape) => (
+              <button
+                key={shape.type}
+                onClick={() => {
+                  const id = addShapeClip(undefined, playbackEngine.time, shape.type);
+                  if (id) {
+                    select([id]);
+                    notify(`Dodano: ${shape.label}.`);
+                  } else notify({ text: "Brak ścieżki wideo dla kształtu.", tone: "error" });
+                }}
+                className="state-layer flex flex-col items-start gap-1.5 rounded-[14px] bg-surf-low p-3 text-left"
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-tertiary-container text-on-tertiary-container">
+                  <Icon name={shape.icon} size={20} />
+                </span>
+                <span className="text-[12px] font-medium text-on-surface">{shape.label}</span>
+                <span className="text-[10px] text-on-surface-variant">{shape.detail}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>

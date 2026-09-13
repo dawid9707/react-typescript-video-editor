@@ -145,28 +145,18 @@ export class WasmFFmpeg implements FFmpegEngine {
   private durationHint = 0;
   private progressCb: ((ratio: number, message: string) => void) | null = null;
 
-  private isBlockedRemoteWorkerEnvironment(): boolean {
-    const host = typeof location !== "undefined" ? location.hostname : "";
-    return host.includes("app.github.dev") || host.includes("github.dev");
-  }
-
   private canUseThreads(): boolean {
     return typeof SharedArrayBuffer !== "undefined" &&
       typeof crossOriginIsolated !== "undefined" &&
-      crossOriginIsolated;
+      crossOriginIsolated &&
+      typeof Worker !== "undefined";
   }
 
   async isAvailable(): Promise<boolean> {
-    if (this.isBlockedRemoteWorkerEnvironment()) return false;
     return typeof WebAssembly !== "undefined" && typeof Worker !== "undefined";
   }
 
   async load(onProgress?: (ratio: number, message: string) => void): Promise<void> {
-    if (this.isBlockedRemoteWorkerEnvironment()) {
-      throw new Error(
-        "FFmpeg WASM jest zablokowany w tym środowisku (GitHub Codespaces / app.github.dev), bo przeglądarka odrzuca zewnętrzne worker-y. Użyj 'Przeglądarka' albo skonfiguruj backend FFmpeg.",
-      );
-    }
     if (this.instance) return;
     if (this.loading) return this.loading;
     this.loading = (async () => {

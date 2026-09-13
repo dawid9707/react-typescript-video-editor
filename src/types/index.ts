@@ -170,6 +170,15 @@ export interface Crop {
   right: number;
 }
 
+export interface BlurRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radius: number;
+  shape: "rectangle" | "ellipse";
+}
+
 export interface ColorGrade {
   exposure: number;
   contrast: number;
@@ -222,6 +231,7 @@ export interface VideoClip extends ClipBase {
   blendMode: BlendMode;
   color: ColorGrade;
   effects: Effect[];
+  blurRegion?: BlurRegion;
   volume: number;
   muted: boolean;
   fadeIn: number;
@@ -289,7 +299,23 @@ export interface SubtitleClip extends ClipBase {
   sourceAssetId?: string;
 }
 
-export type Clip = VideoClip | AudioClip | TextClip | SubtitleClip;
+export type ShapeType = "rectangle" | "ellipse" | "line" | "arrow";
+
+export interface ShapeClip extends ClipBase {
+  type: "shape";
+  shape: ShapeType;
+  transform: Transform;
+  width: number;
+  height: number;
+  fill: string;
+  fillOpacity: number;
+  stroke: string;
+  strokeWidth: number;
+  opacity: number;
+  cornerRadius: number;
+}
+
+export type Clip = VideoClip | AudioClip | TextClip | SubtitleClip | ShapeClip;
 
 /* ----------------------------- markers ---------------------------- */
 

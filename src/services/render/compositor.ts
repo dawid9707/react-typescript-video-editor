@@ -5,6 +5,7 @@ import type {
   MediaAsset,
   Project,
   SubtitleClip,
+  ShapeClip,
   TextClip,
   TextStyle,
   Transform,
@@ -13,7 +14,7 @@ import type {
 } from "@/types";
 import { clamp } from "@/utils/format";
 import { mediaPool } from "@/services/media/pool";
-import { clipEnd, isSubtitleClip, isTextClip, isVideoClip } from "@/features/timeline/selectors";
+import { clipEnd, isShapeClip, isSubtitleClip, isTextClip, isVideoClip } from "@/features/timeline/selectors";
 
 export type Drawable = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement;
 
@@ -662,6 +663,21 @@ function drawVideoClip(o: RenderOptions, clip: VideoClip): void {
     ctx.drawImage(source, cropX, cropY, cropW, cropH, stabilizedDst.x, stabilizedDst.y, stabilizedDst.w, stabilizedDst.h);
   }
   ctx.filter = "none";
+  if (clip.blurRegion && o.highQuality !== false) {
+    const region = clip.blurRegion;
+    const rx = dst.x + (region.x / 100) * dst.w;
+    const ry = dst.y + (region.y / 100) * dst.h;
+    const rw = (region.width / 100) * dst.w;
+    const rh = (region.height / 100) * dst.h;
+    ctx.save();
+    ctx.beginPath();
+    if (region.shape === "ellipse") ctx.ellipse(rx + rw / 2, ry + rh / 2, rw / 2, rh / 2, 0, 0, Math.PI * 2);
+    else ctx.roundRect(rx, ry, rw, rh, Math.min(18, Math.min(rw, rh) / 4));
+    ctx.clip();
+    ctx.filter = `blur(${Math.max(1, region.radius).toFixed(1)}px)`;
+    ctx.drawImage(source, cropX, cropY, cropW, cropH, stabilizedDst.x, stabilizedDst.y, stabilizedDst.w, stabilizedDst.h);
+    ctx.restore();
+  }
   drawColorOverlays(ctx, dst, clip.color);
   drawPostEffects(ctx, dst, clip.effects, painted, o.time);
   ctx.restore();
@@ -673,6 +689,39 @@ function drawVideoClip(o: RenderOptions, clip: VideoClip): void {
     ctx.fillRect(0, 0, width, height);
     ctx.restore();
   }
+}
+
+function drawShapeClip(o: RenderOptions, clip: ShapeClip): void {
+  const { ctx, width, height } = o;
+  const trans = transitionState(clip, o.time);
+  const w = (clip.width / 100) * width;
+  const h = (clip.height / 100) * height;
+  ctx.save();
+  ctx.globalAlpha = clamp(clip.opacity * trans.alpha, 0, 1);
+  applyTransform(ctx, clip.transform, width, height, trans);
+  ctx.lineWidth = clip.strokeWidth * (height / 1080);
+  ctx.strokeStyle = clip.stroke;
+  ctx.fillStyle = clip.fill;
+  ctx.beginPath();
+  if (clip.shape === "ellipse") ctx.ellipse(0, 0, w / 2, Math.max(1, h / 2), 0, 0, Math.PI * 2);
+  else if (clip.shape === "line" || clip.shape === "arrow") {
+    ctx.moveTo(-w / 2, 0);
+    ctx.lineTo(w / 2, 0);
+    if (clip.shape === "arrow") {
+      const head = Math.max(10, Math.min(w * 0.22, 46));
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w / 2 - head, -head * 0.55);
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w / 2 - head, head * 0.55);
+    }
+  } else ctx.roundRect(-w / 2, -h / 2, w, h, Math.min(clip.cornerRadius, Math.min(w, h) / 2));
+  if (clip.shape !== "line" && clip.shape !== "arrow") {
+    ctx.globalAlpha *= clamp(clip.fillOpacity, 0, 1);
+    ctx.fill();
+    ctx.globalAlpha = clamp(clip.opacity * trans.alpha, 0, 1);
+  }
+  if (clip.strokeWidth > 0) ctx.stroke();
+  ctx.restore();
 }
 
 function drawTextClip(o: RenderOptions, clip: TextClip): void {
@@ -724,6 +773,7 @@ export function renderFrame(o: RenderOptions): void {
       ctx.globalAlpha = trackOpacity;
       if (isVideoClip(clip)) drawVideoClip({ ...o, ctx }, clip);
       else if (isTextClip(clip)) drawTextClip({ ...o, ctx }, clip);
+      else if (isShapeClip(clip)) drawShapeClip({ ...o, ctx }, clip);
       ctx.restore();
     }
   }

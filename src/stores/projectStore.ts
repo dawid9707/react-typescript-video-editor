@@ -8,6 +8,7 @@ import type {
   Marker,
   Project,
   ProjectSettings,
+  ShapeType,
   SubtitleCue,
   Track,
   TrackKind,
@@ -20,6 +21,7 @@ import {
   createImageClip,
   createSubtitleClip,
   createTextClip,
+  createShapeClip,
   createVideoClip,
 } from "@/features/project/factory";
 import { clipEnd, findFreeStart } from "@/features/timeline/selectors";
@@ -64,6 +66,7 @@ interface ProjectState {
 
   addAssetToTimeline: (assetId: string, trackId?: string, start?: number) => string | null;
   addTextClip: (trackId: string | undefined, start: number, text?: string) => string | null;
+  addShapeClip: (trackId: string | undefined, start: number, shape: ShapeType) => string | null;
   addSubtitleCues: (cues: SubtitleCue[], assetId?: string, trackId?: string) => void;
 
   updateClip: (clipId: string, patch: Partial<Clip>, meta?: HistoryMeta) => void;
@@ -288,6 +291,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const track = p.tracks.find((t) => t.id === trackId && t.kind === "video") ?? p.tracks.find((t) => t.kind === "video");
       if (!track) return p;
       const clip = createTextClip(track.id, findFreeStart(p, track.id, start, 4), text);
+      id = clip.id;
+      return withClips(p, [...p.clips, clip]);
+    });
+    return id;
+  },
+
+  addShapeClip: (trackId, start, shape) => {
+    let id: string | null = null;
+    get().apply((p) => {
+      const track = p.tracks.find((t) => t.id === trackId && t.kind === "video") ?? p.tracks.find((t) => t.kind === "video");
+      if (!track) return p;
+      const clip = createShapeClip(track.id, Math.max(0, start), shape);
       id = clip.id;
       return withClips(p, [...p.clips, clip]);
     });

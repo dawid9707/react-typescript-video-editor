@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import type { AudioClip, BlendMode, Clip, SubtitleClip, TextClip, VideoClip } from "@/types";
+import type { AudioClip, BlendMode, Clip, ShapeClip, ShapeType, SubtitleClip, TextClip, VideoClip } from "@/types";
 import {
   Button,
   Chip,
@@ -296,6 +296,44 @@ function VideoInspector({ clip }: { clip: VideoClip }) {
               />
             ))}
 
+            <SectionHeader title="Blur fragmentu" icon="blur_on" />
+            {clip.blurRegion ? (
+              <>
+                <Select
+                  label="Kształt obszaru"
+                  value={clip.blurRegion.shape}
+                  options={[{ value: "rectangle", label: "Prostokąt" }, { value: "ellipse", label: "Elipsa" }]}
+                  onChange={(v) => update(clip.id, { blurRegion: { ...clip.blurRegion!, shape: v as "rectangle" | "ellipse" } } as Partial<Clip>)}
+                  className="py-1"
+                />
+                {(["x", "y", "width", "height"] as const).map((key) => (
+                  <ParamRow
+                    key={key}
+                    label={{ x: "Pozycja X", y: "Pozycja Y", width: "Szerokość", height: "Wysokość" }[key]}
+                    unit="%"
+                    value={clip.blurRegion![key]}
+                    min={0}
+                    max={100}
+                    step={1}
+                    onChange={(v) => update(clip.id, { blurRegion: { ...clip.blurRegion!, [key]: v } } as Partial<Clip>)}
+                  />
+                ))}
+                <ParamRow label="Siła blur" unit="px" value={clip.blurRegion.radius} min={1} max={60} step={1} onChange={(v) => update(clip.id, { blurRegion: { ...clip.blurRegion!, radius: v } } as Partial<Clip>)} />
+                <Button variant="outlined" icon="close" className="mt-2 w-full" onClick={() => update(clip.id, { blurRegion: undefined } as Partial<Clip>)}>
+                  Usuń obszar blur
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="tonal"
+                icon="blur_on"
+                className="my-1 w-full"
+                onClick={() => update(clip.id, { blurRegion: { x: 25, y: 25, width: 50, height: 50, radius: 18, shape: "rectangle" } } as Partial<Clip>)}
+              >
+                Dodaj obszar blur
+              </Button>
+            )}
+
             <SectionHeader title="Przejścia" icon="transition_fade" />
             <TransitionSection clip={clip} />
           </>
@@ -353,6 +391,38 @@ function VideoInspector({ clip }: { clip: VideoClip }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ShapeInspector({ clip }: { clip: ShapeClip }) {
+  const update = useProjectStore((s) => s.updateClip);
+  const patch = (next: Partial<ShapeClip>) => update(clip.id, next as Partial<Clip>);
+  const patchTransform = (key: keyof ShapeClip["transform"], value: number) => patch({ transform: { ...clip.transform, [key]: value } });
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6">
+      <InspectorSection title="Kształt" icon="shapes">
+        <Select
+          label="Typ"
+          value={clip.shape}
+          options={(["rectangle", "ellipse", "line", "arrow"] as ShapeType[]).map((value) => ({ value, label: { rectangle: "Prostokąt", ellipse: "Elipsa", line: "Linia", arrow: "Strzałka" }[value] }))}
+          onChange={(value) => patch({ shape: value as ShapeType })}
+          className="py-1"
+        />
+        <ParamRow label="Pozycja X" unit="%" value={clip.transform.x} min={-100} max={100} step={0.5} onChange={(v) => patchTransform("x", v)} />
+        <ParamRow label="Pozycja Y" unit="%" value={clip.transform.y} min={-100} max={100} step={0.5} onChange={(v) => patchTransform("y", v)} />
+        <ParamRow label="Szerokość" unit="%" value={clip.width} min={1} max={100} step={1} onChange={(v) => patch({ width: v })} />
+        <ParamRow label="Wysokość" unit="%" value={clip.height} min={0} max={100} step={1} onChange={(v) => patch({ height: v })} />
+        <ParamRow label="Obrót" unit="°" value={clip.transform.rotation} min={-180} max={180} step={1} onChange={(v) => patchTransform("rotation", v)} />
+      </InspectorSection>
+      <InspectorSection title="Wygląd" icon="palette">
+        <ColorInput label="Wypełnienie" value={clip.fill} onChange={(v) => patch({ fill: v })} />
+        <ParamRow label="Krycie wypełnienia" value={clip.fillOpacity} min={0} max={1} step={0.01} onChange={(v) => patch({ fillOpacity: v })} />
+        <ColorInput label="Obrys" value={clip.stroke} onChange={(v) => patch({ stroke: v })} />
+        <ParamRow label="Grubość obrysu" unit="px" value={clip.strokeWidth} min={0} max={30} step={1} onChange={(v) => patch({ strokeWidth: v })} />
+        <ParamRow label="Krycie" value={clip.opacity} min={0} max={1} step={0.01} onChange={(v) => patch({ opacity: v })} />
+        {clip.shape === "rectangle" && <ParamRow label="Zaokrąglenie" unit="px" value={clip.cornerRadius} min={0} max={80} step={1} onChange={(v) => patch({ cornerRadius: v })} />}
+      </InspectorSection>
     </div>
   );
 }
@@ -657,6 +727,7 @@ export function Inspector() {
           {clip.type === "video" && <VideoInspector clip={clip} />}
           {clip.type === "audio" && <AudioInspector clip={clip} />}
           {(clip.type === "text" || clip.type === "subtitle") && <TextInspector clip={clip} />}
+          {clip.type === "shape" && <ShapeInspector clip={clip} />}
         </>
       )}
     </aside>

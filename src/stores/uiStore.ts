@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { SnackbarMessage } from "@/types";
 import { uid } from "@/utils/format";
 
-export type LibraryTab = "media" | "audio" | "subtitles" | "effects" | "transitions" | "text";
+export type LibraryTab = "media" | "audio" | "subtitles" | "effects" | "transitions" | "text" | "shapes";
 export type DialogId =
   | "export"
   | "settings"

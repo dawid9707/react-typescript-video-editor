@@ -7,6 +7,8 @@ import type {
   EffectType,
   Project,
   SubtitleClip,
+  ShapeClip,
+  ShapeType,
   TextClip,
   TextStyle,
   Track,
@@ -26,6 +28,8 @@ export const defaultTransform = (): Transform => ({
 });
 
 export const defaultCrop = (): Crop => ({ top: 0, bottom: 0, left: 0, right: 0 });
+
+export const defaultBlurRegion = () => ({ x: 25, y: 25, width: 50, height: 50, radius: 18, shape: "rectangle" as const });
 
 export const defaultColor = (): ColorGrade => ({
   exposure: 0,
@@ -146,6 +150,7 @@ export function createVideoClip(asset: VideoAsset, trackId: string, start: numbe
     blendMode: "normal",
     color: defaultColor(),
     effects: [],
+    blurRegion: undefined,
     volume: 1,
     muted: false,
     fadeIn: 0,
@@ -222,6 +227,28 @@ export function createTextClip(trackId: string, start: number, text = "Nowy teks
     transform: defaultTransform(),
     animation: "fade",
     effects: [],
+  };
+}
+
+export function createShapeClip(trackId: string, start: number, shape: ShapeType): ShapeClip {
+  const label = shape === "ellipse" ? "Elipsa" : shape === "line" ? "Linia" : shape === "arrow" ? "Strzałka" : "Prostokąt";
+  return {
+    id: uid("clip"),
+    type: "shape",
+    trackId,
+    start,
+    duration: 4,
+    label,
+    shape,
+    transform: defaultTransform(),
+    width: shape === "line" || shape === "arrow" ? 55 : 36,
+    height: shape === "line" || shape === "arrow" ? 0 : 24,
+    fill: "#ffcf33",
+    fillOpacity: shape === "line" || shape === "arrow" ? 0 : 0.82,
+    stroke: "#ffffff",
+    strokeWidth: 4,
+    opacity: 1,
+    cornerRadius: 4,
   };
 }
 
