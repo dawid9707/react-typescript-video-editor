@@ -4,7 +4,7 @@ import { bestIntermediateMime, capabilities, exportFormat, findRecorderMime } fr
 import { BackendFFmpeg, type FFmpegEngine } from "@/services/ffmpeg";
 import { projectDuration } from "@/features/timeline/selectors";
 import { downloadBlob } from "@/utils/format";
-import fixWebmDuration from "webm-duration-fix";
+import { fixWebmDuration } from "@/services/export/webmDuration";
 
 export interface ExportRequest {
   project: Project;
@@ -26,10 +26,10 @@ function sanitize(name: string): string {
   return name.replace(/[^\p{L}\p{N}\-_ ]/gu, "").trim() || "eksport";
 }
 
-async function repairWebmDuration(blob: Blob, onProgress: () => void): Promise<Blob> {
+async function repairWebmDuration(blob: Blob, durationSeconds: number, onProgress: () => void): Promise<Blob> {
   onProgress();
   try {
-    const repaired = await fixWebmDuration(blob);
+    const repaired = await fixWebmDuration(blob, durationSeconds);
     if (!repaired.size) throw new Error("Naprawiony plik WebM jest pusty.");
     return repaired;
   } catch (err) {
@@ -160,7 +160,7 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
     }
     let blob = await recordTimeline(req, mime);
     if (settings.container === "webm" || mime.includes("webm")) {
-      blob = await repairWebmDuration(blob, () =>
+      blob = await repairWebmDuration(blob, duration, () =>
         req.onProgress("preparing", 0.95, "Naprawianie metadanych WebM…"),
       );
     }
@@ -188,7 +188,7 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
     onProgress: (ratio, message) => req.onProgress("transcoding", ratio, message),
   });
   if (format.extension === "webm") {
-    blob = await repairWebmDuration(blob, () =>
+    blob = await repairWebmDuration(blob, duration, () =>
       req.onProgress("finalizing", 0.95, "Naprawianie metadanych WebM…"),
     );
   }
