@@ -4,7 +4,7 @@ import { useProjectStore } from "@/stores/projectStore";
 import { useUiStore } from "@/stores/uiStore";
 import { playbackEngine } from "@/services/playback/engine";
 import { usePlaybackState, usePlayheadRef } from "@/hooks/usePlayback";
-import { projectDuration } from "@/features/timeline/selectors";
+import { isTextClip, projectDuration } from "@/features/timeline/selectors";
 import { formatTimecode } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
@@ -101,7 +101,7 @@ export function PreviewPanel() {
     (e: React.PointerEvent) => {
       if (selectedIds.length !== 1) return;
       const clip = clips.find((c) => c.id === selectedIds[0]);
-      if (!clip || clip.kind !== "text") return;
+      if (!clip || !isTextClip(clip)) return;
 
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -120,7 +120,7 @@ export function PreviewPanel() {
         const newY = startTransformY + (dy / rect.height) * 100;
 
         updateClip(clip.id, { transform: { ...clip.transform, x: newX, y: newY } });
-        playbackEngine.requestRender();
+        playbackEngine.invalidate();
       };
 
       const up = () => {

@@ -441,7 +441,7 @@ export function ExportDialog() {
           )}
           <label className="flex items-center justify-between rounded-[12px] bg-surf p-3">
             <span className="text-[12px] text-on-surface">Wypal napisy w obrazie</span>
-            <Switch checked={settings.burnSubtitles} onChange={(v) => store.patch({ burnSubtitrate: v })} label="Wypal napisy" />
+            <Switch checked={settings.burnSubtitles} onChange={(v) => store.patch({ burnSubtitles: v })} label="Wypal napisy" />
           </label>
 
           <div className="mt-1 flex flex-wrap items-center justify-between gap-2 rounded-[16px] bg-surf p-3">
