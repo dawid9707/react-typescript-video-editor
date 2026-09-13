@@ -1,11 +1,14 @@
 # Material Video Studio
-
+<img src="https://github.com/dawid9707/react-typescript-video-editor/blob/main/ChatGPT%20Image%2013%20wrz%202026,%2012_40_50.png?raw=true" alt="Alt Text" width="64" height="64">
 Profesjonalny, w pełni przeglądarkowy edytor wideo (React + TypeScript + Vite) z interfejsem
 zbudowanym zgodnie z **Google Material Design 3 / Material 3 Expressive**.
 
 Aplikacja startuje **całkowicie pusta** — nie zawiera żadnych przykładowych filmów, zdjęć, muzyki
 ani projektów. Wszystkie materiały pochodzą wyłącznie z importu użytkownika i **nigdy nie opuszczają
 urządzenia** (całe przetwarzanie odbywa się lokalnie).
+
+---
+<img src="https://camo.githubusercontent.com/6676f8c93a570d729e17f3189c4dd648d7d129bbb23f20080f1db445d456b610/68747470733a2f2f6e65746c6966792d636f636f6f6e2e6e65746c6966792e6170702f2e6e65746c6966792f66756e6374696f6e732f66657463683f636f64653d33303726706174683d65794a7a6158526c58326c6b496a6f694e6d4a695a54677a4e7a51744e4745324e4330304e544d344c574a6b4f546b744e544a6c5a6d4d354f475133596a4d30496977695a4756776247393558326c6b496a6f694e6d46684e6a55334e4745304d5755774f4755774d4441344e7a59774d57593249697769615751694f694a6b596d45775a4749785a6931694d6a67794c5451354e5455744f4467324f5331695a4445324e6a45324e6a51794e47456966513d3d" alt="Alt Text">
 
 ---
 
