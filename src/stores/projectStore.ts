@@ -49,6 +49,7 @@ interface ProjectState {
 
   newProject: (name?: string) => void;
   loadProject: (project: Project) => void;
+  openProjectJson: (json: string) => void;
   renameProject: (name: string) => void;
   updateSettings: (patch: Partial<ProjectSettings>) => void;
 
@@ -154,6 +155,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({ project: createEmptyProject(name), past: [], future: [], dirty: false, lastSavedAt: null }),
 
   loadProject: (project) => set({ project, past: [], future: [], dirty: false, lastSavedAt: Date.now() }),
+
+  openProjectJson: (json) => {
+    try {
+      const parsed = JSON.parse(json) as Project;
+      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.clips) || !Array.isArray(parsed.tracks)) {
+        throw new Error("Nieprawidłowy format projektu.");
+      }
+      get().loadProject(parsed);
+    } catch {
+      throw new Error("Nie udało się wczytać projektu z pliku JSON.");
+    }
+  },
 
   renameProject: (name) => get().apply((p) => ({ ...p, name }), true, { key: "rename" }),
 

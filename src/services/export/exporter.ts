@@ -1,7 +1,7 @@
 import type { ExportPhase, ExportSettings, MediaAsset, Project } from "@/types";
 import { playbackEngine } from "@/services/playback/engine";
 import { bestIntermediateMime, capabilities, exportFormat, findRecorderMime } from "@/services/export/capabilities";
-import { BackendFFmpeg, getWasmFFmpeg, type FFmpegEngine } from "@/services/ffmpeg";
+import { BackendFFmpeg, type FFmpegEngine } from "@/services/ffmpeg";
 import { projectDuration } from "@/features/timeline/selectors";
 import { downloadBlob } from "@/utils/format";
 import fixWebmDuration from "webm-duration-fix";

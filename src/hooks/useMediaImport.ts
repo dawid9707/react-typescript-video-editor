@@ -8,11 +8,22 @@ import { useProjectStore } from "@/stores/projectStore";
 import { useUiStore } from "@/stores/uiStore";
 import { uid } from "@/utils/format";
 
+let lastImportTime = 0;
+let lastImportSignature = "";
+
 export function useMediaImport() {
   const addAssets = useProjectStore((s) => s.addAssets);
 
   const importFiles = useCallback(
     async (files: File[]): Promise<MediaAsset[]> => {
+      const signature = files.map((f) => f.name + f.size).sort().join("|");
+      const now = Date.now();
+      if (signature === lastImportSignature && now - lastImportTime < 2000) {
+        return [];
+      }
+      lastImportTime = now;
+      lastImportSignature = signature;
+
       const ui = useUiStore.getState();
       const projectId = useProjectStore.getState().project.id;
       const accepted = files.filter((f) => kindOf(f) !== null);
