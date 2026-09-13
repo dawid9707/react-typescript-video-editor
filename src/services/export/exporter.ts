@@ -115,7 +115,17 @@ async function recordTimeline(req: ExportRequest, mime: string): Promise<Blob> {
   });
 
   playbackEngine.pause();
-  if (recorder.state !== "inactive") recorder.stop();
+  if (recorder.state !== "inactive") {
+    await new Promise<void>((resolve) => {
+      const onFinalData = () => {
+        recorder.removeEventListener("dataavailable", onFinalData);
+        resolve();
+      };
+      recorder.addEventListener("dataavailable", onFinalData);
+      recorder.requestData();
+    });
+    recorder.stop();
+  }
   const blob = await finished;
   playbackEngine.removeTarget("export");
   playbackEngine.setRate(restoreRate);
@@ -211,19 +221,20 @@ export async function deliverResult(
       }
     ).showSaveFilePicker;
     const extension = result.fileName.slice(result.fileName.lastIndexOf("."));
+    const pickerMime = result.mime.split(";", 1)[0];
     const handle = await picker({
       suggestedName: result.fileName,
       types: [
         {
           description:
-            result.mime === "video/mp4"
+            pickerMime === "video/mp4"
               ? "Wideo MP4"
-              : result.mime === "video/webm"
+              : pickerMime === "video/webm"
                 ? "Wideo WebM"
-                : result.mime === "video/x-matroska"
+                : pickerMime === "video/x-matroska"
                   ? "Wideo Matroska"
                   : "Animacja GIF",
-          accept: { [result.mime]: [extension] },
+          accept: { [pickerMime]: [extension] },
         },
       ],
     });
