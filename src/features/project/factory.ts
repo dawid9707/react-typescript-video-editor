@@ -1,6 +1,7 @@
 import type {
   AudioAsset,
   AudioClip,
+  BlurClip,
   ColorGrade,
   Crop,
   Effect,
@@ -30,6 +31,23 @@ export const defaultTransform = (): Transform => ({
 export const defaultCrop = (): Crop => ({ top: 0, bottom: 0, left: 0, right: 0 });
 
 export const defaultBlurRegion = () => ({ x: 25, y: 25, width: 50, height: 50, radius: 18, shape: "rectangle" as const });
+
+export function createBlurClip(trackId: string, start: number): BlurClip {
+  return {
+    id: uid("blur"),
+    type: "blur",
+    trackId,
+    start: Math.max(0, start),
+    duration: 4,
+    label: "Blur",
+    x: 25,
+    y: 25,
+    width: 50,
+    height: 50,
+    radius: 18,
+    shape: "rectangle",
+  };
+}
 
 export const defaultColor = (): ColorGrade => ({
   exposure: 0,

@@ -17,6 +17,7 @@ import type {
 } from "@/types";
 import {
   createAudioClip,
+  createBlurClip,
   createEmptyProject,
   createImageClip,
   createSubtitleClip,
@@ -67,6 +68,7 @@ interface ProjectState {
   addAssetToTimeline: (assetId: string, trackId?: string, start?: number) => string | null;
   addTextClip: (trackId: string | undefined, start: number, text?: string) => string | null;
   addShapeClip: (trackId: string | undefined, start: number, shape: ShapeType) => string | null;
+  addBlurClip: (trackId: string | undefined, start: number) => string | null;
   addSubtitleCues: (cues: SubtitleCue[], assetId?: string, trackId?: string) => void;
 
   updateClip: (clipId: string, patch: Partial<Clip>, meta?: HistoryMeta) => void;
@@ -303,6 +305,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const track = p.tracks.find((t) => t.id === trackId && t.kind === "video") ?? p.tracks.find((t) => t.kind === "video");
       if (!track) return p;
       const clip = createShapeClip(track.id, Math.max(0, start), shape);
+      id = clip.id;
+      return withClips(p, [...p.clips, clip]);
+    });
+    return id;
+  },
+
+  addBlurClip: (trackId, start) => {
+    let id: string | null = null;
+    get().apply((p) => {
+      const track = p.tracks.find((t) => t.id === trackId && t.kind === "video") ?? p.tracks.find((t) => t.kind === "video");
+      if (!track) return p;
+      const clip = createBlurClip(track.id, start);
       id = clip.id;
       return withClips(p, [...p.clips, clip]);
     });

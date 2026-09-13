@@ -87,6 +87,8 @@ function ClipViewInner({
           ? "var(--md-track-subtitle)"
           : clip.type === "shape"
             ? "var(--md-track-text)"
+            : clip.type === "blur"
+              ? "var(--md-track-subtitle)"
           : "var(--md-track-video)";
 
   const thumb = asset && "thumbnail" in asset ? asset.thumbnail : undefined;
@@ -194,6 +196,8 @@ function ClipViewInner({
                   ? "subtitles"
                   : clip.type === "shape"
                     ? "shapes"
+                    : clip.type === "blur"
+                      ? "blur_on"
                   : "movie"
           }
           size={12}

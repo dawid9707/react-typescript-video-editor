@@ -4,7 +4,7 @@ import { useProjectStore } from "@/stores/projectStore";
 import { useUiStore } from "@/stores/uiStore";
 import { playbackEngine } from "@/services/playback/engine";
 import { usePlaybackPlaying, usePlayheadRef } from "@/hooks/usePlayback";
-import { isTextClip, projectDuration } from "@/features/timeline/selectors";
+import { isBlurClip, isTextClip, projectDuration } from "@/features/timeline/selectors";
 import { formatTimecode } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
@@ -20,6 +20,8 @@ export function PreviewPanel() {
   const selectedIds = useUiStore((s) => s.selectedClipIds);
   const notify = useUiStore((s) => s.notify);
   const playing = usePlaybackPlaying();
+  const selectedClip = selectedIds.length === 1 ? clips.find((clip) => clip.id === selectedIds[0]) : undefined;
+  const selectedBlur = selectedClip && isBlurClip(selectedClip) ? selectedClip : undefined;
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -134,6 +136,43 @@ export function PreviewPanel() {
     [selectedIds, clips, updateClip]
   );
 
+  const onBlurPointerDown = (e: React.PointerEvent<HTMLElement>, resize: boolean) => {
+    const clip = selectedBlur;
+    const canvas = canvasRef.current;
+    if (!clip || !canvas) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = canvas.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const start = { x: clip.x, y: clip.y, width: clip.width, height: clip.height };
+    const move = (ev: PointerEvent) => {
+      const dx = ((ev.clientX - startX) / rect.width) * 100;
+      const dy = ((ev.clientY - startY) / rect.height) * 100;
+      const next = resize
+        ? {
+            x: start.x,
+            y: start.y,
+            width: Math.max(4, Math.min(100 - start.x, start.width + dx)),
+            height: Math.max(4, Math.min(100 - start.y, start.height + dy)),
+          }
+        : {
+            x: Math.max(0, Math.min(100 - start.width, start.x + dx)),
+            y: Math.max(0, Math.min(100 - start.height, start.y + dy)),
+            width: start.width,
+            height: start.height,
+          };
+      updateClip(clip.id, next);
+      playbackEngine.invalidate();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
   return (
     <section aria-label="Podgląd" className="flex h-full min-h-0 flex-col bg-surf-low">
       <div ref={wrapRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto bg-black/90 p-3">
@@ -145,6 +184,26 @@ export function PreviewPanel() {
             aria-label="Podgląd projektu"
             onPointerDown={onCanvasPointerDown}
           />
+          {selectedBlur && (
+            <div
+              className="pointer-events-auto absolute border-2 border-dashed border-cyan-300 bg-cyan-300/10 shadow-[0_0_0_1px_rgba(0,0,0,0.7)]"
+              style={{
+                left: `${selectedBlur.x}%`,
+                top: `${selectedBlur.y}%`,
+                width: `${selectedBlur.width}%`,
+                height: `${selectedBlur.height}%`,
+                borderRadius: selectedBlur.shape === "ellipse" ? "50%" : "8px",
+                cursor: "move",
+              }}
+              onPointerDown={(e) => onBlurPointerDown(e, false)}
+            >
+              <span
+                aria-label="Zmień rozmiar obszaru blur"
+                className="absolute -bottom-2 -right-2 h-4 w-4 cursor-se-resize rounded-full border-2 border-cyan-200 bg-cyan-500 shadow"
+                onPointerDown={(e) => onBlurPointerDown(e, true)}
+              />
+            </div>
+          )}
           {showSafe && (
             <div className="pointer-events-none absolute inset-0">
               <div className="absolute inset-[5%] border border-white/35" />

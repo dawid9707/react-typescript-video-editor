@@ -1,4 +1,4 @@
-import type { AudioClip, Clip, Project, ShapeClip, SubtitleClip, TextClip, Track, VideoClip } from "@/types";
+import type { AudioClip, BlurClip, Clip, Project, ShapeClip, SubtitleClip, TextClip, Track, VideoClip } from "@/types";
 
 export const clipEnd = (c: Clip): number => c.start + c.duration;
 
@@ -34,6 +34,9 @@ export function isSubtitleClip(c: Clip): c is SubtitleClip {
 }
 export function isShapeClip(c: Clip): c is ShapeClip {
   return c.type === "shape";
+}
+export function isBlurClip(c: Clip): c is BlurClip {
+  return c.type === "blur";
 }
 
 export function tracksByKind(project: Project, kind: Track["kind"]): Track[] {

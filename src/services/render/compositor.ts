@@ -14,7 +14,7 @@ import type {
 } from "@/types";
 import { clamp } from "@/utils/format";
 import { mediaPool } from "@/services/media/pool";
-import { clipEnd, isShapeClip, isSubtitleClip, isTextClip, isVideoClip } from "@/features/timeline/selectors";
+import { clipEnd, isBlurClip, isShapeClip, isSubtitleClip, isTextClip, isVideoClip } from "@/features/timeline/selectors";
 
 export type Drawable = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement;
 
@@ -724,6 +724,29 @@ function drawShapeClip(o: RenderOptions, clip: ShapeClip): void {
   ctx.restore();
 }
 
+function drawBlurClip(o: RenderOptions, clip: import("@/types").BlurClip): void {
+  const { ctx, width, height } = o;
+  const source = scratchCanvas("b", width, height);
+  const sourceCtx = source.getContext("2d")!;
+  sourceCtx.filter = "none";
+  sourceCtx.globalAlpha = 1;
+  sourceCtx.globalCompositeOperation = "copy";
+  sourceCtx.drawImage(ctx.canvas, 0, 0, width, height);
+
+  const x = (clip.x / 100) * width;
+  const y = (clip.y / 100) * height;
+  const w = (clip.width / 100) * width;
+  const h = (clip.height / 100) * height;
+  ctx.save();
+  ctx.beginPath();
+  if (clip.shape === "ellipse") ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+  else ctx.roundRect(x, y, w, h, Math.min(18, Math.min(w, h) / 4));
+  ctx.clip();
+  ctx.filter = `blur(${Math.max(1, clip.radius).toFixed(1)}px)`;
+  ctx.drawImage(source, 0, 0, width, height);
+  ctx.restore();
+}
+
 function drawTextClip(o: RenderOptions, clip: TextClip): void {
   const { ctx, width, height } = o;
   const trans = transitionState(clip, o.time);
@@ -774,6 +797,7 @@ export function renderFrame(o: RenderOptions): void {
       if (isVideoClip(clip)) drawVideoClip({ ...o, ctx }, clip);
       else if (isTextClip(clip)) drawTextClip({ ...o, ctx }, clip);
       else if (isShapeClip(clip)) drawShapeClip({ ...o, ctx }, clip);
+      else if (isBlurClip(clip)) drawBlurClip({ ...o, ctx }, clip);
       ctx.restore();
     }
   }

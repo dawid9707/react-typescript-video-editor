@@ -179,6 +179,16 @@ export interface BlurRegion {
   shape: "rectangle" | "ellipse";
 }
 
+export interface BlurClip extends ClipBase {
+  type: "blur";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radius: number;
+  shape: "rectangle" | "ellipse";
+}
+
 export interface ColorGrade {
   exposure: number;
   contrast: number;
@@ -315,7 +325,7 @@ export interface ShapeClip extends ClipBase {
   cornerRadius: number;
 }
 
-export type Clip = VideoClip | AudioClip | TextClip | SubtitleClip | ShapeClip;
+export type Clip = VideoClip | AudioClip | TextClip | SubtitleClip | ShapeClip | BlurClip;
 
 /* ----------------------------- markers ---------------------------- */
 

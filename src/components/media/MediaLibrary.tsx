@@ -385,7 +385,22 @@ export function MediaLibrary() {
         )}
 
         {tab === "effects" && (
-          <div className="grid grid-cols-2 gap-2 pt-3">
+          <div className="pt-3">
+            <Button
+              variant="tonal"
+              icon="blur_on"
+              className="mb-2 w-full"
+              onClick={() => {
+                const id = useProjectStore.getState().addBlurClip(undefined, playbackEngine.time);
+                if (id) {
+                  select([id]);
+                  notify("Dodano warstwę blur na osi czasu.");
+                } else notify({ text: "Brak ścieżki wideo dla warstwy blur.", tone: "error" });
+              }}
+            >
+              Dodaj warstwę blur
+            </Button>
+            <div className="grid grid-cols-2 gap-2">
             {(Object.keys(EFFECT_DEFAULTS) as EffectType[]).map((type) => (
               <button
                 key={type}
@@ -403,6 +418,7 @@ export function MediaLibrary() {
                 <span className="text-[12px] font-medium text-on-surface">{EFFECT_DEFAULTS[type].label}</span>
               </button>
             ))}
+            </div>
           </div>
         )}
 
