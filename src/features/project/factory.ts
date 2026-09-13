@@ -85,6 +85,8 @@ export const EFFECT_DEFAULTS: Record<EffectType, { label: string; icon: string; 
   pixelate: { label: "Pikseloza", icon: "grid_on", params: { size: 10 } },
   scanlines: { label: "Linie TV", icon: "tv", params: { amount: 0.4, density: 4 } },
   cinema: { label: "Kino (pasy)", icon: "movie", params: { size: 0.1 } },
+  enhance: { label: "Poprawa jakości obrazu", icon: "auto_awesome", params: { amount: 0.45, detail: 0.35 } },
+  stabilize: { label: "Stabilizacja obrazu", icon: "motion_blur", params: { amount: 0.65, crop: 0.08 } },
 };
 
 export function createEffect(type: EffectType): Effect {
@@ -148,6 +150,9 @@ export function createVideoClip(asset: VideoAsset, trackId: string, start: numbe
     muted: false,
     fadeIn: 0,
     fadeOut: 0,
+    noiseReduction: 0,
+    voiceEnhance: 0,
+    compressor: 0,
   };
 }
 
@@ -198,6 +203,9 @@ export function createAudioClip(asset: AudioAsset, trackId: string, start: numbe
     fadeIn: 0,
     fadeOut: 0,
     reverse: false,
+    noiseReduction: 0,
+    voiceEnhance: 0,
+    compressor: 0,
   };
 }
 

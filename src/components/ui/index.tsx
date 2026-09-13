@@ -459,17 +459,19 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-8 w-[52px] shrink-0 rounded-full border-2 transition-colors duration-200 disabled:opacity-38",
-        checked ? "border-primary bg-primary" : "border-outline bg-surface-variant",
+        "state-layer relative h-7 w-12 shrink-0 rounded-full border transition-[background-color,border-color,box-shadow] duration-200 disabled:pointer-events-none disabled:opacity-38",
+        checked
+          ? "border-primary bg-primary shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--md-primary)_35%,transparent)]"
+          : "border-outline bg-surface-variant hover:border-on-surface-variant",
       )}
     >
       <span
         className={cn(
-          "absolute top-1/2 grid -translate-y-1/2 place-items-center rounded-full transition-all duration-200",
-          checked ? "left-[26px] h-6 w-6 bg-on-primary" : "left-[6px] h-4 w-4 bg-outline",
+          "absolute top-1/2 grid h-5 w-5 -translate-y-1/2 place-items-center rounded-full shadow-sm transition-[left,background-color,transform] duration-200",
+          checked ? "left-[25px] bg-on-primary" : "left-[3px] bg-outline",
         )}
       >
-        {checked && <Icon name="check" size={14} className="text-primary" />}
+        {checked && <Icon name="check" size={13} className="text-primary" weight={600} />}
       </span>
     </button>
   );

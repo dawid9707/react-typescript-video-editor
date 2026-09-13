@@ -60,8 +60,18 @@ function Divider({
   );
 }
 
-export default function App() {
+function PlaybackProjectSync() {
   const project = useProjectStore((s) => s.project);
+  const assetMap = useMemo(() => new Map(project.assets.map((a) => [a.id, a])), [project.assets]);
+
+  useEffect(() => {
+    playbackEngine.setProject(project, assetMap);
+  }, [project, assetMap]);
+
+  return null;
+}
+
+export default function App() {
   const newProject = useProjectStore((s) => s.newProject);
   const theme = useSettingsStore((s) => s.theme);
   const accent = useSettingsStore((s) => s.accent);
@@ -76,7 +86,7 @@ export default function App() {
 
   const [leftWidth, setLeftWidth] = useState(320);
   const [rightWidth, setRightWidth] = useState(316);
-  const [timelineHeight, setTimelineHeight] = useState(320);
+  const [timelineHeight, setTimelineHeight] = useState(230);
   const [dropping, setDropping] = useState(false);
   const [mobileSheet, setMobileSheet] = useState<"library" | "inspector" | null>(null);
   const dragDepth = useRef(0);
@@ -91,11 +101,6 @@ export default function App() {
     return () => mq.removeEventListener("change", handler);
   }, [theme, accent]);
 
-  /* keep the playback engine in sync with the project */
-  const assetMap = useMemo(() => new Map(project.assets.map((a) => [a.id, a])), [project.assets]);
-  useEffect(() => {
-    playbackEngine.setProject(project, assetMap);
-  }, [project, assetMap]);
   useEffect(() => () => playbackEngine.stop(), []);
 
   /* resume AudioContext on the first interaction */
@@ -164,6 +169,7 @@ export default function App() {
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
+      <PlaybackProjectSync />
       <TopAppBar
         onSave={() => void saveNow().then(() => notify("Projekt zapisany w przeglądarce."))}
         onNewProject={() => {
@@ -208,7 +214,7 @@ export default function App() {
 
         <Divider
           orientation="horizontal"
-          onDrag={(d) => setTimelineHeight((h) => Math.max(180, Math.min(window.innerHeight - 260, h - d)))}
+          onDrag={(d) => setTimelineHeight((h) => Math.max(160, Math.min(window.innerHeight - 220, h - d)))}
         />
 
         <div className="flex min-h-0 flex-col" style={{ height: timelineHeight }}>

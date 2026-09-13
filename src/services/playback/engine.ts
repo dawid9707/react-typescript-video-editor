@@ -19,6 +19,9 @@ interface RenderTarget {
 interface ChannelNodes {
   gain: GainNode;
   pan: StereoPannerNode;
+  highpass: BiquadFilterNode;
+  lowpass: BiquadFilterNode;
+  compressor: DynamicsCompressorNode;
 }
 
 const SEEK_TOLERANCE = 0.22;
@@ -109,8 +112,13 @@ export class PlaybackEngine {
       }
       const gain = ctx.createGain();
       const pan = ctx.createStereoPanner();
-      src.connect(gain).connect(pan).connect(this.masterNode());
-      nodes = { gain, pan };
+      const highpass = ctx.createBiquadFilter();
+      highpass.type = "highpass";
+      const lowpass = ctx.createBiquadFilter();
+      lowpass.type = "lowpass";
+      const compressor = ctx.createDynamicsCompressor();
+      src.connect(highpass).connect(lowpass).connect(gain).connect(compressor).connect(pan).connect(this.masterNode());
+      nodes = { gain, pan, highpass, lowpass, compressor };
       this.channels.set(el, nodes);
     }
     return nodes;
@@ -256,7 +264,7 @@ export class PlaybackEngine {
         const gain = hasAudio
           ? clip.volume * trackInfo.volume * this.volume * this.fadeGain(clip.start, clip.duration, clip.fadeIn, clip.fadeOut)
           : 0;
-        this.applyGain(el, gain, trackInfo.pan);
+        this.applyGain(el, gain, trackInfo.pan, clip.noiseReduction ?? 0, clip.voiceEnhance ?? 0, clip.compressor ?? 0);
       } else if (isAudioClip(clip)) {
         const el = mediaPool.getAudio(clip.id, clip.assetId);
         if (!el) continue;
@@ -282,7 +290,14 @@ export class PlaybackEngine {
             trackInfo.volume *
             this.volume *
             this.fadeGain(clip.start, clip.duration, clip.fadeIn, clip.fadeOut);
-        this.applyGain(el, gain, clamp(trackInfo.pan + clip.pan, -1, 1));
+        this.applyGain(
+          el,
+          gain,
+          clamp(trackInfo.pan + clip.pan, -1, 1),
+          clip.noiseReduction ?? 0,
+          clip.voiceEnhance ?? 0,
+          clip.compressor ?? 0,
+        );
       }
     }
 
@@ -303,7 +318,14 @@ export class PlaybackEngine {
     this.activeKeys = nextActive;
   }
 
-  private applyGain(el: HTMLMediaElement, gain: number, pan: number): void {
+  private applyGain(
+    el: HTMLMediaElement,
+    gain: number,
+    pan: number,
+    noiseReduction = 0,
+    voiceEnhance = 0,
+    compression = 0,
+  ): void {
     try {
       const nodes = this.channelFor(el);
       const ctx = audioContext();
@@ -313,6 +335,12 @@ export class PlaybackEngine {
       }
       const p = clamp(pan, -1, 1);
       if (Math.abs(nodes.pan.pan.value - p) > 0.001) nodes.pan.pan.value = p;
+      nodes.highpass.frequency.setTargetAtTime(45 + noiseReduction * 155, ctx.currentTime, 0.03);
+      nodes.lowpass.frequency.setTargetAtTime(18_000 - noiseReduction * 6_000 + voiceEnhance * 1_000, ctx.currentTime, 0.03);
+      nodes.compressor.threshold.value = -24 - compression * 24;
+      nodes.compressor.ratio.value = 1 + compression * 9;
+      nodes.compressor.attack.value = 0.003;
+      nodes.compressor.release.value = 0.18;
       el.muted = false;
       el.volume = 1;
     } catch {

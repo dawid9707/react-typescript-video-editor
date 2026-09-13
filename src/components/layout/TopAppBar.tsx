@@ -58,13 +58,13 @@ export function TopAppBar({
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-1 bg-surf px-2 sm:px-3">
+    <header className="flex h-12 shrink-0 items-center gap-1 border-b border-outline-variant bg-surf px-1.5 sm:px-3">
       <div className="flex items-center gap-2 pr-1">
-        <span className="grid h-9 w-9 place-items-center rounded-[12px] bg-primary text-on-primary">
+        <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-primary text-on-primary">
           <Icon name="movie_edit" size={20} filled />
         </span>
         <span className="hidden text-[15px] font-medium tracking-tight text-on-surface lg:block">
-          Material Video Studio
+          FreeCut
         </span>
       </div>
 

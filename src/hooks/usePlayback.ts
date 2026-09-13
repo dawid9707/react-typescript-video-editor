@@ -20,6 +20,17 @@ export function usePlaybackState(): { playing: boolean; time: number } {
   return state;
 }
 
+export function usePlaybackPlaying(): boolean {
+  const [playing, setPlaying] = useState(playbackEngine.playing);
+  useEffect(
+    () => playbackEngine.subscribe((_time, nextPlaying) => {
+      setPlaying((current) => (current === nextPlaying ? current : nextPlaying));
+    }),
+    [],
+  );
+  return playing;
+}
+
 /** Subscription without re-render — the callback runs inside the rAF loop. */
 export function usePlayheadRef(cb: (time: number, playing: boolean) => void): void {
   const ref = useRef(cb);
